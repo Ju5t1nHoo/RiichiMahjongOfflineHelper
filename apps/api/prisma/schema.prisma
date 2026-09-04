@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  signature    String   @default("")
+  ruleDefaults Json?    @map("rule_defaults") // { "4": RuleSnapshot, "3": ..., "2": ... }
+  createdAt    DateTime @default(now())
+  players      Player[]
+  games        Game[]
+  sessions     Session[]
+  feedbacks    Feedback[]
+}
+
+model Player {
+  id           String            @id @default(cuid())
+  name         String
+  avatar       String? // 可选，默认名称首字文字头像（前端生成）
+  boundUserId  String?           @map("bound_user_id")
+  boundUser    User?             @relation(fields: [boundUserId], references: [id])
+  participants GameParticipant[]
+
+  @@index([name])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Game {
+  id            String            @id @default(cuid())
+  creatorUserId String            @map("creator_user_id")
+  creator       User              @relation(fields: [creatorUserId], references: [id])
+  mode          Int // 2 / 3 / 4
+  ruleSnapshot  Json              @map("rule_snapshot")
+  liveState     Json?             @map("live_state") // { dealer, honba, wind, hand, points[], pot, seq }
+  status        String // PLAYING / FINISHED
+  createdAt     DateTime          @default(now())
+  endedAt       DateTime?
+  participants  GameParticipant[]
+  settlements   Settlement[]
+}
+
+model GameParticipant {
+  id            String   @id @default(cuid())
+  gameId        String   @map("game_id")
+  game          Game     @relation(fields: [gameId], references: [id])
+  seat          Int // 0~3
+  playerId      String?  @map("player_id") // 全局雀士
+  player        Player?  @relation(fields: [playerId], references: [id])
+  tempName      String?  @map("temp_name") // 临时雀士（与 playerId 二选一）
+  finalRawScore Int?     @map("final_raw_score")
+  finalScore    Decimal? @map("final_score") @db.Decimal(6, 1) // 得点，保留一位小数
+  rank          Int?
+
+  @@unique([gameId, seat])
+}
+
+model Settlement {
+  id      String  @id @default(cuid())
+  gameId  String  @map("game_id")
+  game    Game    @relation(fields: [gameId], references: [id])
+  seq     Int // 局序号
+  type    String // RON / TSUMO / DRAW / CHOMBO
+  subType String? @map("sub_type") // DRAW: NOTEN / ABORTIVE / NAGASHI_MANGAN
+  han     Int?
+  fu      Int?
+  honba   Int     @default(0)
+  detail  Json // 各家明细：赢家/放铳/立直/听牌/点数变动…
+
+  @@unique([gameId, seq])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String
+  contact   String?
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>数据统计 — 原型预览</title>
+<style>
+  :root {
+    --bg: #f5f0e6;
+    --felt: #2f6b4f;
+    --accent: #c0392b;
+    --gold: #d4a017;
+    --ink: #2c2c2c;
+    --muted: #7a746a;
+    --card: #fffdf7;
+    --line: #e7dfd0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  #app { max-width: 460px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* 顶栏 */
+  .topbar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px; background: var(--card);
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 5;
+  }
+  .back-btn {
+    border: none; background: none; font-size: 20px; color: var(--ink);
+    cursor: pointer; padding: 2px 6px; line-height: 1;
+  }
+  .title { font-size: 16px; font-weight: 600; }
+
+  /* 顶层 Tab */
+  .tabs { display: flex; background: var(--card); border-bottom: 1px solid var(--line); }
+  .tab {
+    flex: 1; padding: 12px 0; text-align: center; font-size: 14px; font-weight: 500;
+    color: var(--muted); border: none; background: none; cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--ink); font-weight: 700; border-bottom-color: var(--accent); }
+
+  /* 模式分段控件 */
+  .segment { display: flex; padding: 10px 14px; gap: 8px; }
+  .seg {
+    flex: 1; padding: 7px 0; text-align: center; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+    color: var(--muted); cursor: pointer;
+  }
+  .seg.active { background: var(--felt); color: #fff; border-color: var(--felt); font-weight: 600; }
+
+  main { flex: 1; padding: 8px 14px 24px; }
+
+  /* 卡片 */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+  }
+  .card-row { display: flex; align-items: center; gap: 8px; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .badge-playing {
+    background: var(--accent); color: #fff; font-size: 11px; padding: 2px 7px;
+    border-radius: 10px; font-weight: 600;
+  }
+  .muted { color: var(--muted); font-size: 12px; }
+  .players { font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+  .result { font-size: 13px; color: var(--ink); }
+  .result b { color: var(--felt); }
+  .result .neg { color: var(--accent); }
+  .host { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+
+  /* 排行榜 */
+  .rank-toolbar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .search-row { display: flex; gap: 8px; }
+  .search-box {
+    flex: 1; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: 14px; background: var(--card); color: var(--ink); outline: none;
+  }
+  .search-box:focus { border-color: var(--felt); }
+  .chip-toggle {
+    padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px;
+    background: var(--card); color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .chip-toggle.on { background: var(--felt); color: #fff; border-color: var(--felt); font-weight: 600; }
+  .sort-row { display: flex; gap: 8px; }
+  .sort-btn {
+    flex: 1; padding: 6px 0; text-align: center; font-size: 13px;
+    border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+    color: var(--muted); cursor: pointer;
+  }
+  .sort-btn.on { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+
+  .rank-row {
+    display: flex; align-items: center; gap: 10px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; margin-bottom: 8px; cursor: pointer;
+  }
+  .rank-num { width: 24px; text-align: center; font-size: 16px; font-weight: 800; color: var(--muted); flex-shrink: 0; }
+  .rank-num.top1 { color: var(--gold); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; color: #fff; font-size: 15px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .rank-body { flex: 1; min-width: 0; }
+  .rank-name { font-size: 15px; font-weight: 600; }
+  .rank-name .mine { color: var(--accent); font-size: 11px; font-weight: 600; margin-left: 4px; }
+  .rank-sub { font-size: 12px; color: var(--muted); }
+  .rank-val { text-align: right; flex-shrink: 0; }
+  .rank-val .main { font-size: 16px; font-weight: 800; color: var(--felt); }
+  .rank-val .main.gold { color: var(--gold); }
+  .rank-val .hint { font-size: 11px; color: var(--muted); }
+
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+  /* 详情页头部 */
+  .detail-head {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .detail-head .sub { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .detail-head .h1 { font-size: 18px; font-weight: 700; }
+  .player-head { display: flex; align-items: center; gap: 12px; }
+  .player-head .avatar { width: 52px; height: 52px; font-size: 22px; }
+  .player-head .nm { font-size: 18px; font-weight: 700; }
+  .player-head .tag { font-size: 11px; color: var(--accent); }
+
+  .section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 10px; }
+
+  /* 指标网格 */
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat { text-align: center; }
+  .stat .val { font-size: 18px; font-weight: 800; }
+  .stat .val.green { color: var(--felt); }
+  .stat .val.red { color: var(--accent); }
+  .stat .val.gold { color: var(--gold); }
+  .stat .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* 顺位分布横条 */
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .bar-lbl { width: 32px; font-size: 13px; font-weight: 600; color: var(--muted); flex-shrink: 0; }
+  .bar-track { flex: 1; height: 16px; background: #f0eadd; border-radius: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--felt); border-radius: 8px; }
+  .bar-cnt { width: 22px; text-align: right; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+
+  /* 手级指标两列 */
+  .pair-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .pair { display: flex; justify-content: space-between; font-size: 14px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+  .pair .k { color: var(--muted); }
+  .pair .v { font-weight: 700; }
+
+  /* 终局顺位表 */
+  table.rank-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.rank-table th, table.rank-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+  table.rank-table th { color: var(--muted); font-size: 12px; font-weight: 600; }
+  table.rank-table td:first-child { font-weight: 800; color: var(--muted); }
+  table.rank-table td:first-child.top1 { color: var(--gold); }
+  table.rank-table td.score { font-weight: 700; }
+  table.rank-table td.score.neg { color: var(--accent); }
+
+  /* 逐局结算 */
+  .round { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .round .hand { font-weight: 600; color: var(--muted); width: 60px; flex-shrink: 0; }
+  .round .desc { flex: 1; }
+  .round .type { font-size: 11px; padding: 1px 6px; border-radius: 8px; background: #f0eadd; color: var(--muted); flex-shrink: 0; }
+
+  .legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); }
+  .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .tabbar { position: sticky; bottom: 0; display: flex; background: var(--card); border-top: 1px solid var(--line); }
+  .tabbar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 8px; font-size: 11px; color: var(--muted); text-decoration: none; }
+  .tabbar .tab .t-ico { font-size: 18px; line-height: 1; }
+  .tabbar .tab.on { color: var(--accent); font-weight: 700; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+    background: rgba(44,44,44,.92); color: #fff; padding: 9px 16px; border-radius: 20px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s;
+    z-index: 20; max-width: 80%;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button class="back-btn" id="back">←</button>
+    <span class="title" id="title">数据统计</span>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="mine">我的创建</button>
+    <button class="tab" data-tab="feed">数据广场</button>
+    <button class="tab" data-tab="rank">雀士数据</button>
+  </nav>
+  <div class="segment" id="segment">
+    <button class="seg active" data-mode="4">四人</button>
+    <button class="seg" data-mode="3">三人</button>
+    <button class="seg" data-mode="2">二人</button>
+  </div>
+  <main id="content"></main>
+  <nav class="tabbar">
+    <a class="tab" href="scoring-table.html"><span class="t-ico">🀄</span><span>计分风盘</span></a>
+    <a class="tab on" href="statistics.html"><span class="t-ico">📊</span><span>数据统计</span></a>
+    <a class="tab" href="profile.html"><span class="t-ico">👤</span><span>个人中心</span></a>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script>
+  // ===== 假数据 =====
+  // 统计字段顺序：牌局数, 平均顺位, 顺位分布[], 总得点, 净得点,
+  //              和牌数, 和牌率%, 自摸数, 自摸率%, 荣和数,
+  //              放铳数, 放铳率%, 立直数, 立直率%, 平均番数, 击飞(被击飞)次数
+  function S(games, avgRank, dist, total, net, win, winRate, tsumo, tsumoRate, ron, dealIn, dealInRate, riichi, riichiRate, avgHan, tobi) {
+    return { games, avgRank, dist, total, net, win, winRate, tsumo, tsumoRate, ron, dealIn, dealInRate, riichi, riichiRate, avgHan, tobi };
+  }
+  const PLAYERS = [
+    { name:'张三', avatar:'张', bound:true, stats:{
+      4: S(38,1.72,[24,10,3,1],455.0,180.2,95,25.0,40,42.1,55,50,13.2,70,18.4,4.8,1),
+      3: S(20,1.60,[10,7,3],250.0,110.0,52,26.0,22,42.3,30,24,12.0,36,18.0,4.6,1),
+      2: S(15,1.33,[10,5],180.0,80.0,40,27.0,17,42.5,23,17,11.3,26,17.3,4.4,0),
+    }},
+    { name:'李四', avatar:'李', bound:true, stats:{
+      4: S(41,1.95,[21,12,5,3],320.5,120.0,90,24.0,36,40.0,54,55,13.4,66,16.1,4.5,0),
+      3: S(22,1.82,[8,9,5],150.0,60.0,50,24.5,20,40.0,30,26,12.7,34,16.7,4.3,0),
+      2: S(14,1.57,[6,8],60.0,20.0,32,23.5,13,40.6,19,18,13.2,22,16.2,4.1,1),
+    }},
+    { name:'王五', avatar:'王', bound:false, stats:{
+      4: S(30,2.00,[13,9,5,3],320.5,140.0,68,25.2,28,41.2,40,40,14.8,52,19.3,4.9,2),
+      3: S(18,2.00,[6,6,6],40.0,10.0,38,23.1,16,42.1,22,20,12.2,28,17.1,4.0,0),
+      2: S(12,1.67,[4,8],-40.0,-50.0,24,20.0,10,41.7,14,15,12.5,16,13.3,3.8,0),
+    }},
+    { name:'赵六', avatar:'赵', bound:false, stats:{
+      4: S(35,2.31,[12,11,7,5],180.0,50.0,72,23.0,30,41.7,42,48,15.3,55,17.5,4.2,0),
+      3: S(19,2.11,[5,7,7],-30.0,-40.0,40,23.5,16,40.0,24,22,12.9,28,16.5,3.9,1),
+      2: S(13,1.69,[4,9],-80.0,-90.0,22,18.3,9,40.9,13,16,13.3,14,11.7,3.5,1),
+    }},
+    { name:'孙七', avatar:'孙', bound:false, stats:{
+      4: S(28,2.54,[8,9,6,5],45.0,-20.0,55,21.8,22,40.0,33,42,16.7,40,15.9,3.9,1),
+      3: S(16,2.38,[3,6,7],-120.0,-90.0,30,20.0,12,40.0,18,20,13.3,22,14.7,3.6,0),
+    }},
+    { name:'周八', avatar:'周', bound:false, stats:{
+      4: S(22,2.77,[5,6,6,5],-80.0,-90.0,42,21.2,16,38.1,26,36,18.2,30,15.2,3.7,0),
+    }},
+  ];
+  const AVATAR_COLORS = ['#2f6b4f','#c0392b','#d4a017','#4a6fa5','#8e44ad','#c76b2c'];
+  function pColor(p) { return AVATAR_COLORS[PLAYERS.indexOf(p) % AVATAR_COLORS.length]; }
+
+  // 牌局：{ host, mine, status:'done'|'playing', time, players[], result?[[名,素点,得点]], rounds?[] }
+  const GAMES = {
+    4: [
+      { host:'张三', mine:true, status:'playing', time:'开始于 09-02 20:10', players:['张三','李四','王五','赵六'] },
+      { host:'张三', mine:true, status:'done', time:'09-01 18:40', players:['张三','李四','王五','赵六'],
+        result:[['张三',35600,'+45.5'],['李四',30200,'+8.0'],['王五',28800,'-1.2'],['赵六',24400,'-52.3']],
+        rounds:['东1局 张三 荣和 8000','东2局 流局·不听罚符','东3局 李四 自摸 4000','东4局 王五 荣和 12000','南1局 赵六 自摸 6000','南2局 张三 荣和 18000','南3局 流局·途中流局','南4局 李四 荣和 8000'] },
+      { host:'李四', mine:false, status:'done', time:'09-01 15:12', players:['李四','王五','孙七','周八'],
+        result:[['王五',40100,'+52.1'],['李四',28900,'-1.0'],['孙七',26300,'-14.7'],['周八',24700,'-36.4']],
+        rounds:['东1局 王五 自摸 12000','东2局 李四 荣和 4000','东3局 流局·不听罚符','东4局 王五 荣和 16000'] },
+      { host:'王五', mine:false, status:'done', time:'08-30 14:05', players:['王五','张三','赵六','孙七'],
+        result:[['张三',38900,'+70.9'],['王五',30400,'+12.4'],['赵六',27600,'-8.6'],['孙七',23100,'-74.7']],
+        rounds:['东1局 张三 荣和 12000','东2局 赵六 自摸 4000','东3局 张三 荣和 24000','东4局 流局·流局满贯'] },
+    ],
+    3: [
+      { host:'张三', mine:true, status:'done', time:'08-29 20:00', players:['张三','李四','王五'],
+        result:[['张三',38200,'+58.2'],['李四',29500,'+5.0'],['王五',22300,'-63.2']],
+        rounds:['东1局 张三 自摸 8000','东2局 李四 荣和 4000','东3局 流局·不听罚符','东4局 张三 荣和 12000'] },
+      { host:'孙七', mine:false, status:'done', time:'08-28 13:30', players:['孙七','张三','赵六'],
+        result:[['孙七',41100,'+76.1'],['张三',30800,'+12.8'],['赵六',28100,'-88.9']],
+        rounds:['东1局 孙七 荣和 16000','东2局 张三 自摸 6000','东3局 孙七 自摸 12000'] },
+    ],
+    2: [
+      { host:'李四', mine:false, status:'done', time:'08-27 21:15', players:['李四','张三'],
+        result:[['张三',54000,'+54.0'],['李四',46000,'-54.0']],
+        rounds:['东1局 张三 荣和 12000','东2局 李四 自摸 8000','东3局 张三 荣和 8000'] },
+    ],
+  };
+
+  // ===== 状态 =====
+  const state = { tab:'mine', mode:4, sort:'total', search:'', myOnly:false, view:'list', detail:null };
+  const content = document.getElementById('content');
+  const titleEl = document.getElementById('title');
+  const tabsEl = document.getElementById('tabs');
+  const segmentEl = document.getElementById('segment');
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function modeLabel(m) { return ({4:'四人',3:'三人',2:'二人'})[m]; }
+
+  // ===== 排行榜 =====
+  function rankList() {
+    let list = PLAYERS.filter(p => p.stats[state.mode]);
+    if (state.myOnly) list = list.filter(p => p.bound);
+    if (state.search) list = list.filter(p => p.name.includes(state.search));
+    const key = state.sort;
+    const asc = key === 'avgRank';
+    list = [...list].sort((a,b) => asc ? a.stats[state.mode][key] - b.stats[state.mode][key]
+                                          : b.stats[state.mode][key] - a.stats[state.mode][key]);
+    let rank = 1;
+    list.forEach((p, i) => {
+      if (i > 0 && p.stats[state.mode][key] !== list[i-1].stats[state.mode][key]) rank = i + 1;
+      p._rank = rank;
+    });
+    return list;
+  }
+  function sortVal(p) {
+    const s = p.stats[state.mode];
+    if (state.sort === 'total') return (s.total >= 0 ? '+' : '') + s.total.toFixed(1);
+    if (state.sort === 'avgRank') return s.avgRank.toFixed(2);
+    return s.games;
+  }
+  function sortHint() { return ({total:'总得点', avgRank:'平均顺位', games:'牌局数'})[state.sort]; }
+
+  // ===== 渲染 =====
+  function render() {
+    if (state.view === 'game') { content.innerHTML = renderGameDetail(state.detail); titleEl.textContent = '牌局详情'; hideFrame(true); return; }
+    if (state.view === 'player') { content.innerHTML = renderPlayerDetail(state.detail); titleEl.textContent = '雀士详情'; hideFrame(true); return; }
+    titleEl.textContent = '数据统计'; hideFrame(false);
+    if (state.tab === 'mine') content.innerHTML = renderMine();
+    else if (state.tab === 'feed') content.innerHTML = renderFeed();
+    else content.innerHTML = renderRank();
+    bindList();
+  }
+  function hideFrame(hide) { tabsEl.style.display = segmentEl.style.display = hide ? 'none' : ''; }
+
+  function gameCard(g) {
+    const playing = g.status === 'playing';
+    const top = playing
+      ? `<div class="card-top"><span class="badge-playing">进行中</span><span class="muted">${modeLabel(state.mode)} · 半庄战</span></div>`
+      : `<div class="card-top"><span class="muted">${g.time}</span><span class="muted">${modeLabel(state.mode)}</span></div>`;
+    const hostLine = state.tab === 'feed' ? `<div class="host">主机：${esc(g.host)}</div>` : '';
+    let res = '';
+    if (!playing && g.result) {
+      res = '<div class="result">' + g.result.slice(0, 2).map(r =>
+        `${r[0]} ${esc(r[1])} <b class="${r[2].startsWith('-') ? 'neg' : ''}">${esc(r[2])}</b>`).join(' · ') + '</div>';
+    } else if (playing) {
+      res = `<div class="muted">点击恢复进计分风盘继续</div>`;
+    }
+    return `<div class="card" data-game="${g.time}">
+      ${top}
+      ${hostLine}
+      <div class="players">${g.players.map(esc).join(' · ')}</div>
+      ${res}
+    </div>`;
+  }
+
+  function renderMine() {
+    const list = GAMES[state.mode].filter(g => g.mine);
+    if (!list.length) return '<div class="empty">还没有创建过牌局</div>';
+    return list.map(gameCard).join('');
+  }
+  function renderFeed() {
+    const list = GAMES[state.mode].filter(g => g.status === 'done');
+    if (!list.length) return '<div class="empty">还没有公开牌局</div>';
+    return list.map(gameCard).join('');
+  }
+  function renderRank() {
+    const list = rankList();
+    const sortBtns = [['total','总得点'],['avgRank','平均顺位'],['games','牌局数']].map(([k,l]) =>
+      `<button class="sort-btn ${state.sort===k?'on':''}" data-sort="${k}">${l}</button>`).join('');
+    let body = '';
+    if (!list.length) body = '<div class="empty">没有匹配的雀士</div>';
+    else body = list.map(p => {
+      const s = p.stats[state.mode];
+      const top1 = p._rank === 1;
+      return `<div class="rank-row" data-player="${p.name}">
+        <span class="rank-num ${top1?'top1':''}">${p._rank}</span>
+        <span class="avatar" style="background:${pColor(p)}">${p.avatar}</span>
+        <div class="rank-body">
+          <div class="rank-name">${esc(p.name)}${p.bound?'<span class="mine">我的</span>':''}</div>
+          <div class="rank-sub">局数 ${s.games} · 平均顺位 ${s.avgRank.toFixed(2)}</div>
+        </div>
+        <div class="rank-val">
+          <div class="main ${top1?'gold':''}">${sortVal(p)}</div>
+          <div class="hint">${sortHint()}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="rank-toolbar">
+      <div class="search-row">
+        <input class="search-box" id="search" placeholder="搜索雀士" value="${esc(state.search)}">
+        <button class="chip-toggle ${state.myOnly?'on':''}" id="myOnly">我的雀士</button>
+      </div>
+      <div class="sort-row">${sortBtns}</div>
+    </div>${body}`;
+  }
+
+  // ===== 详情页 =====
+  function trendChart(g) {
+    const n = g.players.length;
+    if (!g.result || !g.rounds || !g.rounds.length) return '<div class="muted">暂无走势数据</div>';
+    const base = n === 2 ? 50000 : 25000;
+    const end = g.result.map(r => Number(r[1]));
+    const nHands = g.rounds.length;
+    const rows = [Array(n).fill(base)];
+    for (let h = 1; h < nHands; h++) {
+      const t = h / nHands;
+      rows.push(g.players.map((_, i) => Math.round(base + (end[i] - base) * t + Math.sin(h * 1.7 + i * 1.3) * 900)));
+    }
+    rows.push(end);
+    const W = 320, H = 150, padX = 8, padY = 16;
+    const all = rows.flat();
+    const min = Math.min(...all), max = Math.max(...all);
+    const range = (max - min) || 1;
+    const x = i => padX + (i * (W - padX * 2) / nHands);
+    const y = v => padY + ((max - v) / range) * (H - padY * 2);
+    const grid = [0.25, 0.5, 0.75].map(f => {
+      const yy = padY + f * (H - padY * 2);
+      return `<line x1="${padX}" y1="${yy.toFixed(1)}" x2="${W-padX}" y2="${yy.toFixed(1)}" stroke="#eee" stroke-dasharray="3 3"/>`;
+    }).join('');
+    const polylines = g.players.map((_, pi) => {
+      const pts = rows.map((row, hi) => `${x(hi).toFixed(1)},${y(row[pi]).toFixed(1)}`).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="${AVATAR_COLORS[pi % AVATAR_COLORS.length]}" stroke-width="2" stroke-linejoin="round"/>`;
+    }).join('');
+    const legend = '<div class="legend">' + g.players.map((p, pi) =>
+      `<span class="legend-item"><span class="dot" style="background:${AVATAR_COLORS[pi % AVATAR_COLORS.length]}"></span>${esc(p)}</span>`).join('') + '</div>';
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${grid}${polylines}</svg>${legend}`;
+  }
+
+  function renderGameDetail(g) {
+    const resTable = g.result ? `<table class="rank-table">
+      <tr><th>顺位</th><th>雀士</th><th>素点</th><th>得点</th></tr>
+      ${g.result.map((r, i) => `<tr><td class="${i===0?'top1':''}">${i+1}位</td><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td class="score ${r[2].startsWith('-')?'neg':''}">${esc(r[2])}</td></tr>`).join('')}
+    </table>` : '<div class="muted">牌局进行中，尚未产生终局结果</div>';
+    const rounds = g.rounds ? g.rounds.map(r => {
+      const [hand, ...rest] = r.split(' ');
+      const type = r.includes('流局') ? '流局' : (r.includes('自摸') ? '自摸' : '荣和');
+      return `<div class="round"><span class="hand">${esc(hand)}</span><span class="desc">${esc(rest.join(' '))}</span><span class="type">${type}</span></div>`;
+    }).join('') : '<div class="muted">暂无逐局记录</div>';
+    return `
+      <div class="detail-head">
+        <div class="sub">${modeLabel(state.mode)} · 半庄战 · ${esc(g.status==='playing'?'进行中':g.time)}</div>
+        <div class="h1">主机：${esc(g.host)}</div>
+      </div>
+      <div class="section">
+        <div class="section-title">终局顺位</div>
+        ${resTable}
+      </div>
+      <div class="section">
+        <div class="section-title">分数走势</div>
+        ${trendChart(g)}
+      </div>
+      <div class="section">
+        <div class="section-title">逐局结算</div>
+        ${rounds}
+      </div>`;
+  }
+
+  function renderPlayerDetail(p) {
+    const s = p.stats[state.mode];
+    const maxDist = Math.max(...s.dist, 1);
+    const distBars = s.dist.map((c, i) => `<div class="bar-row">
+        <span class="bar-lbl">${i+1}位</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${(c/maxDist*100).toFixed(0)}%"></div></div>
+        <span class="bar-cnt">${c}</span>
+      </div>`).join('');
+    const fmt = v => (v >= 0 ? '+' : '') + v.toFixed(1);
+    return `
+      <div class="detail-head player-head">
+        <span class="avatar" style="background:${pColor(p)}">${p.avatar}</span>
+        <div>
+          <div class="nm">${esc(p.name)}${p.bound?' <span class="tag">我绑定的雀士</span>':''}</div>
+          <div class="sub">${modeLabel(state.mode)} · 牌局数 ${s.games}</div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">牌局级指标</div>
+        <div class="stat-grid">
+          <div class="stat"><div class="val">${s.games}</div><div class="lbl">牌局数</div></div>
+          <div class="stat"><div class="val ${s.total>=0?'green':'red'}">${fmt(s.total)}</div><div class="lbl">总得点</div></div>
+          <div class="stat"><div class="val ${s.net>=0?'green':'red'}">${fmt(s.net)}</div><div class="lbl">净得点</div></div>
+          <div class="stat"><div class="val gold">${s.avgRank.toFixed(2)}</div><div class="lbl">平均顺位</div></div>
+          <div class="stat"><div class="val">${s.tobi}</div><div class="lbl">击飞次数</div></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">顺位分布</div>
+        ${distBars}
+      </div>
+      <div class="section">
+        <div class="section-title">手级指标</div>
+        <div class="pair-grid">
+          <div class="pair"><span class="k">和牌率</span><span class="v">${s.winRate}%</span></div>
+          <div class="pair"><span class="k">自摸率</span><span class="v">${s.tsumoRate}%</span></div>
+          <div class="pair"><span class="k">荣和数</span><span class="v">${s.ron}</span></div>
+          <div class="pair"><span class="k">放铳率</span><span class="v">${s.dealInRate}%</span></div>
+          <div class="pair"><span class="k">立直率</span><span class="v">${s.riichiRate}%</span></div>
+          <div class="pair"><span class="k">平均番数</span><span class="v">${s.avgHan}</span></div>
+        </div>
+      </div>`;
+  }
+
+  // ===== 事件绑定 =====
+  function bindList() {
+    content.querySelectorAll('[data-game]').forEach(el => {
+      el.onclick = () => {
+        const g = GAMES[state.mode].find(x => x.time === el.dataset.game);
+        if (g.status === 'playing') { toast('恢复进计分风盘（原型）'); return; }
+        state.view = 'game'; state.detail = g; render();
+      };
+    });
+    content.querySelectorAll('[data-player]').forEach(el => {
+      el.onclick = () => {
+        const p = PLAYERS.find(x => x.name === el.dataset.player);
+        state.view = 'player'; state.detail = p; render();
+      };
+    });
+    const sb = content.querySelector('#search');
+    if (sb) {
+      sb.oninput = () => { state.search = sb.value.trim(); render(); };
+      sb.focus();
+    }
+    const mo = content.querySelector('#myOnly');
+    if (mo) mo.onclick = () => { state.myOnly = !state.myOnly; render(); };
+    content.querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { state.sort = b.dataset.sort; render(); });
+  }
+
+  tabsEl.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+    state.tab = b.dataset.tab; state.view = 'list'; state.detail = null;
+    tabsEl.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === b));
+    render();
+  });
+  segmentEl.querySelectorAll('.seg').forEach(b => b.onclick = () => {
+    state.mode = Number(b.dataset.mode); state.view = 'list'; state.detail = null;
+    segmentEl.querySelectorAll('.seg').forEach(x => x.classList.toggle('active', x === b));
+    render();
+  });
+  document.getElementById('back').onclick = () => {
+    if (state.view !== 'list') { state.view = 'list'; state.detail = null; render(); }
+    else toast('返回（原型）');
+  };
+
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>计分风盘 · 布局 Mockup</title>
+<style>
+  :root {
+    --ivory: #f5f0e6;
+    --felt: #2f6b4f;
+    --vermilion: #c0392b;
+    --gold: #d4a017;
+    --ink: #2c2c2c;
+    --gray: #7a746a;
+    --card: #fffdf7;
+    --line: #e5dcc8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #232323;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 28px 16px; gap: 18px; color: var(--ink);
+  }
+  .stage { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+
+  .phone {
+    position: relative; width: 390px; height: 800px; background: var(--ivory);
+    border-radius: 38px; box-shadow: 0 24px 70px rgba(0,0,0,.55);
+    display: flex; flex-direction: column; overflow: hidden;
+    border: 10px solid #161616; flex-shrink: 0;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px; font-size: 14px; background: var(--ivory);
+    border-bottom: 1px solid rgba(0,0,0,.06);
+  }
+  header .back { color: var(--gray); cursor: pointer; }
+  header .title { font-weight: 600; }
+  header .menu { cursor: pointer; font-weight: 700; letter-spacing: 1px; color: var(--ink); }
+
+  .table-area {
+    flex: 1; display: flex; align-items: center; justify-content: center; padding: 12px;
+    background: radial-gradient(circle at 50% 45%, #3d8060 0%, var(--felt) 60%, #27563f 100%);
+  }
+  .table {
+    width: 100%; aspect-ratio: 1 / 1; max-height: 100%;
+    display: grid; gap: 0;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    grid-template-areas:
+      "tl top tr"
+      "left center right"
+      "bl bottom br";
+  }
+  .seat { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
+  .seat .card {
+    width: 100%; aspect-ratio: 1 / 1; max-height: 100%;
+    background: var(--card); border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    box-shadow: 0 5px 16px rgba(0,0,0,.22); position: relative;
+    border: 3px solid transparent; padding: 6px;
+  }
+  .seat .card.dealer { border-color: var(--vermilion); }
+  .badges { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .badge { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; line-height: 1.5; }
+  .badge.wind { background: #efe7d6; color: var(--ink); }
+  .badge.dealer { background: var(--vermilion); color: #fff; }
+  .name-row { display: flex; align-items: center; gap: 5px; max-width: 100%; }
+  .avatar { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; background: #b7a98a; flex-shrink: 0; }
+  .name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .points { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .points.lead { color: var(--gold); }
+  .crown { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); font-size: 15px; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
+  .riichi-btn { font-size: 11px; padding: 2px 12px; border-radius: 999px; border: 1.5px solid #d8cfbc; background: #fff; color: var(--gray); cursor: pointer; }
+  .riichi-btn.on { background: var(--vermilion); color: #fff; border-color: var(--vermilion); }
+
+  .center {
+    grid-area: center; width: 100%; aspect-ratio: 1 / 1; max-height: 100%;
+    align-self: center; justify-self: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #f3e9d0; text-align: center; gap: 5px;
+    background: rgba(0,0,0,.16); border-radius: 14px;
+  }
+  .center .round { font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+  .center .sub { font-size: 12px; opacity: .92; line-height: 1.6; }
+
+  .settle-bar { padding: 12px 18px 26px; background: var(--ivory); display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .settle-opt { padding: 14px 0; font-size: 16px; font-weight: 700; color: #fff; background: var(--vermilion); border: none; border-radius: 12px; cursor: pointer; letter-spacing: 1px; box-shadow: 0 3px 0 #8e2a20; }
+  .settle-opt:active { transform: translateY(2px); box-shadow: 0 1px 0 #8e2a20; }
+  .tabbar { display: flex; background: var(--card); border-top: 1px solid var(--line); }
+  .tabbar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 8px; font-size: 11px; color: var(--gray); text-decoration: none; }
+  .tabbar .tab .t-ico { font-size: 18px; line-height: 1; }
+  .tabbar .tab.on { color: var(--vermilion); font-weight: 700; }
+
+  /* 底部结算面板 */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; background: var(--card);
+    border-radius: 20px 20px 0 0; padding: 16px 18px 20px; display: none;
+    box-shadow: 0 -12px 34px rgba(0,0,0,.3); z-index: 10; max-height: 82%;
+    overflow-y: auto;
+  }
+  .sheet.open { display: block; }
+  .sheet .sh-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .sheet .sh-title { font-size: 17px; font-weight: 700; }
+  .sheet .sh-close { font-size: 20px; color: var(--gray); cursor: pointer; background: none; border: none; line-height: 1; }
+  .sheet .sec-label { font-size: 12px; color: var(--gray); font-weight: 600; margin: 10px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 7px 12px; border-radius: 999px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; font-size: 13px; }
+  .chip.on { background: var(--vermilion); color: #fff; border-color: var(--vermilion); }
+  .chip.player.sel-win { background: var(--gold); color: #fff; border-color: var(--gold); }
+  .chip.player.sel-loser { background: #7b6a4f; color: #fff; border-color: #7b6a4f; }
+  .chip.player.sel-tenpai { background: #2f6b4f; color: #fff; border-color: #2f6b4f; }
+  .chip.player.sel-noten { background: #a8926f; color: #fff; border-color: #a8926f; }
+  .row-toggle { display: flex; gap: 6px; }
+
+  /* 滚动选择器 */
+  .hanfu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+  .picker {
+    position: relative; height: 200px; overflow-y: auto;
+    scroll-snap-type: y mandatory; scroll-padding: 80px 0;
+    border-radius: 12px; background: #fff; border: 1px solid var(--line);
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .picker::-webkit-scrollbar { display: none; }
+  .picker::before {
+    content: ''; position: sticky; top: 80px; display: block; height: 40px; margin: 0 8px;
+    background: #f3ede0; border-radius: 8px; z-index: 0; pointer-events: none;
+  }
+  .picker-spacer { height: 80px; scroll-snap-align: none; }
+  .picker-opt {
+    height: 40px; display: flex; align-items: center; justify-content: center;
+    scroll-snap-align: center;
+    font-size: 14px; color: #b7ab95; white-space: nowrap; margin-top: -40px;
+  }
+  .picker-opt.sel { color: var(--ink); font-weight: 800; font-size: 16px; }
+
+  .preview { margin-top: 14px; background: #f6f0e4; border-radius: 12px; padding: 12px 14px; font-size: 13px; line-height: 1.7; }
+  .preview b { color: var(--vermilion); }
+  .sheet .sh-foot { display: flex; gap: 10px; margin-top: 14px; }
+  .sheet .sh-foot button { flex: 1; padding: 13px; font-size: 16px; font-weight: 700; border-radius: 12px; border: none; cursor: pointer; }
+  .btn-cancel { background: #efe9db; color: var(--gray); }
+  .btn-ok { background: var(--vermilion); color: #fff; box-shadow: 0 3px 0 #8e2a20; }
+  .btn-ok:disabled { background: #cfc6b4; box-shadow: none; cursor: not-allowed; }
+
+  .toast {
+    position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+    background: rgba(44,44,44,.92); color: #fff; font-size: 13px; padding: 8px 16px;
+    border-radius: 999px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 20;
+  }
+  .toast.show { opacity: 1; }
+
+  .controls { background: #3a3a3a; color: #eee; border-radius: 14px; padding: 16px 20px; width: 390px; flex-shrink: 0; }
+  .controls h3 { font-size: 13px; color: #aaa; margin-bottom: 12px; font-weight: 600; }
+  .controls .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .controls button { padding: 8px 14px; border-radius: 8px; border: 1px solid #555; background: #4a4a4a; color: #eee; cursor: pointer; font-size: 13px; }
+  .controls button.active { background: var(--vermilion); border-color: var(--vermilion); }
+  .note { color: #9a9a9a; font-size: 12px; max-width: 390px; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="phone">
+      <header>
+        <span class="back">‹ 返回</span>
+        <span class="title" id="headerTitle">四人 · 半庄战</span>
+        <span class="menu">⋮</span>
+      </header>
+      <div class="table-area">
+        <div class="table" id="table"></div>
+      </div>
+      <footer class="settle-bar">
+        <button class="settle-opt" data-t="荣和">荣和</button>
+        <button class="settle-opt" data-t="自摸">自摸</button>
+        <button class="settle-opt" data-t="流局">流局</button>
+        <button class="settle-opt" data-t="罚符">罚符</button>
+      </footer>
+      <nav class="tabbar">
+        <a class="tab on" href="scoring-table.html"><span class="t-ico">🀄</span><span>计分风盘</span></a>
+        <a class="tab" href="statistics.html"><span class="t-ico">📊</span><span>数据统计</span></a>
+        <a class="tab" href="profile.html"><span class="t-ico">👤</span><span>个人中心</span></a>
+      </nav>
+      <div class="sheet" id="sheet"></div>
+      <div class="toast" id="toast"></div>
+    </div>
+    <div class="controls">
+      <h3>演示控制（真实产品不显示此面板）</h3>
+      <div class="row">
+        <span style="font-size:13px;color:#aaa">模式：</span>
+        <button data-mode="4" class="active">四人</button>
+        <button data-mode="3">三人</button>
+        <button data-mode="2">二人</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button id="renchan">换庄（自风旋转）</button>
+        <button id="shuffle">随机分位</button>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    番数用数字滚动选择器（1~13、26/39/52/65/78），符数仅在 1~4 番时需要。点底部 荣和/自摸/流局/罚符 打开结算面板。<br>
+    👑 领先者，红框庄家。三人/二人可在左侧切换。
+  </div>
+
+<script>
+  const SEATS = {
+    4: [['top', 180], ['right', -90], ['bottom', 0], ['left', 90]],
+    3: [['top', 180], ['right', -90], ['left', 90]],
+    2: [['top', 180], ['bottom', 0]],
+  };
+  const WIND = { 4: ['东','南','西','北'], 3: ['东','南','西'], 2: ['东','南'] };
+
+  let mode = 4;
+  let rotation = 0;
+  let honba = 0;
+  let riichi = new Set();
+  let names = ['宫本', '佐藤', '铃木', '高桥'];
+  let pts = [25000, 24000, 26300, 24700];
+
+  const table = document.getElementById('table');
+  const headerTitle = document.getElementById('headerTitle');
+  const sheet = document.getElementById('sheet');
+  const toast = document.getElementById('toast');
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+  function nPlayers() { return SEATS[mode].length; }
+  function dealerIdx() { const n = nPlayers(); return (n - (rotation % n)) % n; }
+  function honbaStick() { return mode === 3 ? 200 : 300; }
+  function riichiCount() { return [...riichi].filter(k => k.startsWith(mode + '-')).length; }
+
+  // ===== 点数计算 =====
+  const HAN_NUMS = [1,2,3,4,5,6,7,8,9,10,11,12,13,26,39,52,65,78];
+  const TIER_NAME = {5:'满贯',6:'跳满',7:'跳满',8:'倍满',9:'倍满',10:'倍满',11:'三倍满',12:'三倍满',13:'役满',26:'双倍役满',39:'三倍役满',52:'四倍役满',65:'五倍役满',78:'六倍役满'};
+  const HAN_OPTS = HAN_NUMS.map(n => ({ v: n, label: TIER_NAME[n] ? `${n}番 · ${TIER_NAME[n]}` : `${n}番` }));
+  const FU_OPTS = [20,25,30,40,50,60,70,80,90,100,110];
+  const AMT_OPTS = [
+    { v: 8000, label: '8000 满贯' },
+    { v: 12000, label: '12000 跳满' },
+    { v: 16000, label: '16000 倍满' },
+    { v: 24000, label: '24000 三倍满' },
+    { v: 32000, label: '32000 役满' },
+  ];
+  const rup = x => Math.ceil(x / 100) * 100;
+  const OPT_H = 40; // 每项高度
+
+  function tierBase(han) {
+    if (han <= 5) return 2000;      // 满贯
+    if (han <= 7) return 3000;      // 跳满
+    if (han <= 10) return 4000;     // 倍满
+    if (han <= 12) return 6000;     // 三倍满
+    return 8000 * (han / 13);       // 役满起，每 13 番 ×1
+  }
+  function baseOf(han, fu) {
+    han = Number(han);
+    if (han <= 4) return Math.min(fu * Math.pow(2, han + 2), 2000);
+    return tierBase(han);
+  }
+  function needFu(han) { return Number(han) <= 4; }
+
+  // ===== 牌桌渲染 =====
+  function render() {
+    const seats = SEATS[mode];
+    const winds = WIND[mode];
+    const n = seats.length;
+    headerTitle.textContent = ({4:'四人',3:'三人',2:'二人'})[mode] + ' · 半庄战';
+    table.innerHTML = '';
+    const lead = Math.max(...pts.slice(0, n));
+    seats.forEach(([pos, angle], i) => {
+      const wind = winds[(i + rotation) % n];
+      const isDealer = wind === '东';
+      const isRiichi = riichi.has(`${mode}-${i}`);
+      const isLead = pts[i] === lead;
+      const seat = document.createElement('div');
+      seat.className = 'seat';
+      seat.style.gridArea = pos;
+      const card = document.createElement('div');
+      card.className = 'card' + (isDealer ? ' dealer' : '');
+      card.style.transform = 'rotate(' + angle + 'deg)';
+      card.innerHTML = `
+        ${isLead ? '<div class="crown">👑</div>' : ''}
+        <div class="badges">
+          <span class="badge wind">${wind}</span>
+          ${isDealer ? '<span class="badge dealer">庄</span>' : ''}
+        </div>
+        <div class="name-row">
+          <div class="avatar">${names[i][0]}</div>
+          <div class="name">${names[i]}</div>
+        </div>
+        <div class="points ${isLead ? 'lead' : ''}">${pts[i]}</div>
+        <button class="riichi-btn ${isRiichi ? 'on' : ''}">${isRiichi ? '立直中' : '立直'}</button>`;
+      card.querySelector('.riichi-btn').onclick = () => {
+        const key = `${mode}-${i}`;
+        riichi.has(key) ? riichi.delete(key) : riichi.add(key);
+        render();
+      };
+      seat.appendChild(card);
+      table.appendChild(seat);
+    });
+    const center = document.createElement('div');
+    center.className = 'center';
+    center.innerHTML = `
+      <div class="round">东${(rotation % 4) + 1}局</div>
+      <div class="sub">立直棒 ${riichiCount()} · 本场棒 ${honba}</div>`;
+    table.appendChild(center);
+  }
+
+  // ===== 结算面板 =====
+  let sel = null;
+  let pickerScroll = {};
+
+  function openSheet(type) {
+    if (type === '荣和') sel = { type, discarder: null, winners: [], han: 1, fu: 30, multi: 1 };
+    else if (type === '自摸') sel = { type, winner: null, han: 1, fu: 30 };
+    else if (type === '流局') sel = { type, sub: '不听罚符', tenpai: {}, nagashi: null };
+    else sel = { type, player: null, amount: 8000 };
+    pickerScroll = {};
+    renderSheet();
+    sheet.classList.add('open');
+  }
+  function closeSheet() { sheet.classList.remove('open'); sel = null; }
+
+  function playerChips(picked, cls) {
+    return [...Array(nPlayers())].map(i =>
+      `<button class="chip player ${picked(i) ? cls : ''}" data-p="${i}">${names[i]}</button>`
+    ).join('');
+  }
+
+  function pickerHTML(role, opts, selectedVal) {
+    const optsHtml = opts.map(o => {
+      const v = typeof o === 'object' ? o.v : o;
+      const label = typeof o === 'object' ? o.label : String(o);
+      return `<div class="picker-opt" data-v="${v}">${label}</div>`;
+    }).join('');
+    return `<div class="picker" data-role="${role}"><div class="picker-spacer"></div>${optsHtml}<div class="picker-spacer"></div></div>`;
+  }
+
+  function renderSheet() {
+    const t = sel.type;
+    let body = '';
+    if (t === '荣和') body = renderRon();
+    else if (t === '自摸') body = renderTsumo();
+    else if (t === '流局') body = renderRyu();
+    else body = renderChombo();
+    sheet.innerHTML = `
+      <div class="sh-head">
+        <span class="sh-title">${t}</span>
+        <button class="sh-close">✕</button>
+      </div>
+      ${body}
+      <div class="preview"></div>
+      <div class="sh-foot">
+        <button class="btn-cancel">取消</button>
+        <button class="btn-ok">确认</button>
+      </div>`;
+    sheet.querySelector('.sh-close').onclick = closeSheet;
+    sheet.querySelector('.btn-cancel').onclick = closeSheet;
+    sheet.querySelector('.btn-ok').onclick = () => {
+      showToast('已结算：' + t + '（原型未写入点数）');
+      closeSheet();
+    };
+    bindSheet();
+    updateLive();
+  }
+
+  function hanFuBlock() {
+    const showFu = needFu(sel.han);
+    return `<div class="hanfu-row">
+      <div class="picker-wrap" id="han-wrap" ${showFu ? '' : 'style="grid-column:1/-1"'}>
+        <div class="sec-label">番数</div>
+        ${pickerHTML('han', HAN_OPTS, sel.han)}
+      </div>
+      <div class="picker-wrap" id="fu-wrap" ${showFu ? '' : 'style="display:none"'}>
+        <div class="sec-label">符数</div>
+        ${pickerHTML('fu', FU_OPTS, sel.fu)}
+      </div>
+    </div>`;
+  }
+
+  function renderRon() {
+    let b = `<div class="sec-label">放铳者（点选）</div><div class="chips">` +
+      playerChips(i => sel.discarder === i, 'sel-loser') + `</div>`;
+    b += `<div class="sec-label">和牌者（点选，可多家）</div><div class="chips">` +
+      playerChips(i => sel.winners.includes(i), 'sel-win') + `</div>`;
+    b += `<div class="sec-label">多家荣和</div><div class="row-toggle">` +
+      [1,2,3].map(k => `<button class="chip ${sel.multi === k ? 'on' : ''}" data-multi="${k}">${k}家</button>`).join('') + `</div>`;
+    b += hanFuBlock();
+    return b;
+  }
+
+  function renderTsumo() {
+    let b = `<div class="sec-label">和牌者（点选）</div><div class="chips">` +
+      playerChips(i => sel.winner === i, 'sel-win') + `</div>`;
+    b += hanFuBlock();
+    return b;
+  }
+
+  function renderRyu() {
+    let b = `<div class="sec-label">流局类型</div><div class="chips">` +
+      ['不听罚符','途中流局','流局满贯'].map(s =>
+        `<button class="chip ${sel.sub === s ? 'on' : ''}" data-sub="${s}">${s}</button>`).join('') + `</div>`;
+    if (sel.sub === '不听罚符') {
+      b += `<div class="sec-label">各家听牌状态</div><div class="chips">` +
+        [...Array(nPlayers())].map(i => {
+          const v = sel.tenpai[i];
+          const cls = v === true ? 'sel-tenpai' : v === false ? 'sel-noten' : '';
+          const label = v === true ? names[i] + '·听' : v === false ? names[i] + '·不听' : names[i];
+          return `<button class="chip player ${cls}" data-tenpai="${i}">${label}</button>`;
+        }).join('') + `</div>`;
+      b += `<div class="sec-label" style="color:#999">点玩家切换：听牌 → 不听 → 未标记</div>`;
+    } else if (sel.sub === '流局满贯') {
+      b += `<div class="sec-label">流局满贯获得者</div><div class="chips">` +
+        playerChips(i => sel.nagashi === i, 'sel-win') + `</div>`;
+    } else {
+      b += `<div class="sec-label">途中流局：不结算点数，本场 +1、庄家连庄</div>`;
+    }
+    return b;
+  }
+
+  function renderChombo() {
+    let b = `<div class="sec-label">被罚雀士（点选）</div><div class="chips">` +
+      playerChips(i => sel.player === i, 'sel-loser') + `</div>`;
+    b += `<div class="sec-label">罚点数（满贯档位值）</div><div class="chips">` +
+      AMT_OPTS.map(o => `<button class="chip ${sel.amount === o.v ? 'on' : ''}" data-amt="${o.v}">${o.label}</button>`).join('') + `</div>`;
+    return b;
+  }
+
+  function sheetOK() {
+    const t = sel.type;
+    if (t === '荣和') return sel.discarder !== null && sel.winners.length > 0 && sel.han && (!needFu(sel.han) || sel.fu);
+    if (t === '自摸') return sel.winner !== null && sel.han && (!needFu(sel.han) || sel.fu);
+    if (t === '流局') return sel.sub === '流局满贯' ? sel.nagashi !== null : true;
+    return sel.player !== null && sel.amount > 0;
+  }
+
+  function previewHTML() {
+    const t = sel.type;
+    try {
+      if (t === '荣和') return previewRon();
+      if (t === '自摸') return previewTsumo();
+      if (t === '流局') return previewRyu();
+      return previewChombo();
+    } catch (e) { return '选择完成后显示结算预览'; }
+  }
+
+  function previewRon() {
+    if (sel.discarder === null || sel.winners.length === 0) return '选择放铳者、和牌者后显示点数';
+    const d = dealerIdx();
+    const hs = honbaStick();
+    const lines = [];
+    sel.winners.slice(0, sel.multi).forEach((w, idx) => {
+      const base = baseOf(sel.han, sel.fu || 30);
+      const mult = w === d ? 6 : 4;
+      let amt = rup(base * mult);
+      if (idx === 0) amt += honba * hs + riichiCount() * 1000;
+      lines.push(`${names[sel.discarder]} → ${names[w]}：<b>${amt}</b> 点`);
+    });
+    if (sel.winners.length > 1) lines.push('供托/本场棒按「头跳」归最先和牌者');
+    return lines.join('<br>');
+  }
+
+  function previewTsumo() {
+    if (sel.winner === null) return '选择和牌者后显示点数';
+    const base = baseOf(sel.han, sel.fu || 30);
+    const d = dealerIdx();
+    const n = nPlayers();
+    const hs = honbaStick();
+    const w = sel.winner;
+    const lines = [];
+    if (mode === 2) {
+      const opp = 1 - w;
+      const mult = w === d ? 6 : 4;
+      lines.push(`${names[opp]} → ${names[w]}：<b>${rup(base * mult) + honba * hs}</b> 点（对家全额）`);
+    } else if (w === d) {
+      const each = rup(base * 2) + honba * (hs / (n - 1));
+      lines.push(`亲家自摸：其余每家付 <b>${each}</b> 点`);
+    } else {
+      const dealerPay = rup(base * 2) + honba * (hs / (n - 1));
+      const otherPay = rup(base) + honba * (hs / (n - 1));
+      const others = [...Array(n).keys()].filter(i => i !== w && i !== d);
+      lines.push(`${names[d]} 付 <b>${dealerPay}</b>；${others.map(o => names[o] + ' 付 <b>' + otherPay + '</b>').join('；')}`);
+    }
+    lines.push(`（和牌者 ${names[w]} 取走立直棒 ${riichiCount() * 1000}）`);
+    return lines.join('<br>');
+  }
+
+  function previewRyu() {
+    if (sel.sub === '途中流局') return '途中流局：不结算点数，本场 +1、庄家连庄。';
+    if (sel.sub === '流局满贯') {
+      if (sel.nagashi === null) return '选择流局满贯获得者';
+      const isD = sel.nagashi === dealerIdx();
+      return `${names[sel.nagashi]} 流局满贯，视作自摸，得 <b>${rup(2000 * (isD ? 6 : 4))}</b> 点；本场 +1。`;
+    }
+    const n = nPlayers();
+    const arr = [...Array(n).keys()].map(i => sel.tenpai[i]);
+    const noten = arr.filter(v => v === false).length;
+    const tenpai = arr.filter(v => v === true).length;
+    if (noten === 0 || tenpai === 0) return '标注各家听牌/不听后显示罚符（全听/全不听则无罚符）';
+    const notenNames = arr.map((v, i) => v === false ? names[i] : null).filter(Boolean);
+    const tenpaiNames = arr.map((v, i) => v === true ? names[i] : null).filter(Boolean);
+    return `${notenNames.join('、')} 各付 <b>${3000 / noten}</b>；${tenpaiNames.join('、')} 各得 <b>${3000 / tenpai}</b>。庄家按亲家是否听牌连庄。`;
+  }
+
+  function previewChombo() {
+    if (sel.player === null || !sel.amount) return '选择被罚雀士与罚点数';
+    const n = nPlayers();
+    const each = Math.floor(sel.amount / (n - 1) / 100) * 100;
+    const rest = sel.amount - each * (n - 1);
+    const otherNames = [...Array(n).keys()].filter(i => i !== sel.player).map(i => names[i]);
+    return `${names[sel.player]} 罚 <b>${sel.amount}</b> 点，均分给 ${otherNames.join('、')}（各 <b>${each}</b>${rest ? '，余 ' + rest + ' 归庄家' : ''}）；本场 +1、连庄。`;
+  }
+
+  function selectedIndex(picker) {
+    const opts = [...picker.querySelectorAll('.picker-opt')];
+    const center = picker.scrollTop + picker.clientHeight / 2;
+    let best = 0, bd = Infinity;
+    opts.forEach((el, i) => {
+      const c = el.offsetTop + el.offsetHeight / 2;
+      const dist = Math.abs(c - center);
+      if (dist < bd) { bd = dist; best = i; }
+    });
+    return best;
+  }
+
+  function bindSheet() {
+    // 玩家/子类型/多家/罚点 chips
+    sheet.querySelectorAll('[data-p]').forEach(b => {
+      b.onclick = () => {
+        const i = Number(b.dataset.p);
+        if (sel.type === '荣和') {
+          if (sel.discarder === i) sel.discarder = null;
+          else if (sel.winners.includes(i)) sel.winners = sel.winners.filter(x => x !== i);
+          else if (sel.winners.length < sel.multi) sel.winners.push(i);
+          else sel.discarder = i;
+        } else if (sel.type === '自摸') { sel.winner = sel.winner === i ? null : i; }
+        else if (sel.type === '流局') { sel.nagashi = sel.nagashi === i ? null : i; }
+        else { sel.player = sel.player === i ? null : i; }
+        renderSheet();
+      };
+    });
+    sheet.querySelectorAll('[data-multi]').forEach(b => b.onclick = () => { sel.multi = Number(b.dataset.multi); sel.winners = sel.winners.slice(0, sel.multi); renderSheet(); });
+    sheet.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => { sel.sub = b.dataset.sub; pickerScroll = {}; renderSheet(); });
+    sheet.querySelectorAll('[data-tenpai]').forEach(b => {
+      b.onclick = () => {
+        const i = Number(b.dataset.tenpai);
+        const v = sel.tenpai[i];
+        sel.tenpai[i] = v === undefined ? true : v === true ? false : undefined;
+        renderSheet();
+      };
+    });
+    sheet.querySelectorAll('[data-amt]').forEach(b => b.onclick = () => { sel.amount = Number(b.dataset.amt); renderSheet(); });
+    // 滚动选择器
+    sheet.querySelectorAll('.picker').forEach(p => {
+      const role = p.dataset.role;
+      const opts = [...p.querySelectorAll('.picker-opt')];
+      const val = role === 'han' ? sel.han : (role === 'fu' ? sel.fu : sel.amount);
+      const idx = opts.findIndex(o => String(o.dataset.v) === String(val));
+      p.scrollTop = (pickerScroll[role] != null) ? pickerScroll[role] : (idx >= 0 ? idx * OPT_H : 0);
+      p.addEventListener('scroll', () => {
+        pickerScroll[role] = p.scrollTop;
+        const si = selectedIndex(p);
+        const v = opts[si].dataset.v;
+        if (role === 'han') {
+          sel.han = Number(v);
+          if (needFu(sel.han) && sel.fu == null) sel.fu = 30;
+          if (!needFu(sel.han)) sel.fu = null;
+        } else if (role === 'fu') {
+          sel.fu = Number(v);
+        } else if (role === 'amt') {
+          sel.amount = Number(v);
+        }
+        updateLive();
+      });
+    });
+  }
+
+  function updateLive() {
+    const previewEl = sheet.querySelector('.preview');
+    if (previewEl) previewEl.innerHTML = previewHTML();
+    const ok = sheet.querySelector('.btn-ok');
+    if (ok) ok.disabled = !sheetOK();
+    // 符选择器显隐 + 番占满
+    const hanWrap = sheet.querySelector('#han-wrap');
+    const fuWrap = sheet.querySelector('#fu-wrap');
+    if (fuWrap && hanWrap) {
+      const show = needFu(sel.han);
+      fuWrap.style.display = show ? '' : 'none';
+      hanWrap.style.gridColumn = show ? '' : '1/-1';
+      if (show) {
+        const fuPicker = sheet.querySelector('[data-role="fu"]');
+        if (fuPicker && sel.fu != null) {
+          const fi = FU_OPTS.indexOf(sel.fu);
+          if (fi >= 0) fuPicker.scrollTop = fi * OPT_H;
+        }
+      }
+    }
+    // 高亮
+    sheet.querySelectorAll('.picker').forEach(p => {
+      const si = selectedIndex(p);
+      [...p.querySelectorAll('.picker-opt')].forEach((o, i) => o.classList.toggle('sel', i === si));
+    });
+  }
+
+  // ===== 事件 =====
+  document.querySelectorAll('.settle-opt').forEach(btn => btn.onclick = () => openSheet(btn.dataset.t));
+  document.querySelectorAll('[data-mode]').forEach(btn => {
+    btn.onclick = () => {
+      mode = Number(btn.dataset.mode);
+      document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      riichi.clear();
+      render();
+    };
+  });
+  document.getElementById('renchan').onclick = () => { rotation = (rotation + 1) % 4; honba += 1; render(); };
+  document.getElementById('shuffle').onclick = () => {
+    const n = nPlayers();
+    const idx = [...Array(n).keys()];
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    const nn = idx.map(k => names[k]);
+    const pp = idx.map(k => pts[k]);
+    for (let i = 0; i < n; i++) { names[i] = nn[i]; pts[i] = pp[i]; }
+    render();
+  };
+
+  render();
+</script>
+</body>
+</html>

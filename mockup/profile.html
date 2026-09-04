@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>个人中心 — 原型预览</title>
+<style>
+  :root {
+    --bg: #f5f0e6;
+    --felt: #2f6b4f;
+    --accent: #c0392b;
+    --gold: #d4a017;
+    --ink: #2c2c2c;
+    --muted: #7a746a;
+    --card: #fffdf7;
+    --line: #e7dfd0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased;
+  }
+  #app { max-width: 460px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+    background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5;
+  }
+  .back-btn { border: none; background: none; font-size: 20px; color: var(--ink); cursor: pointer; padding: 2px 6px; line-height: 1; }
+  .title { font-size: 16px; font-weight: 600; }
+
+  main { flex: 1; padding: 14px; }
+
+  /* 通用按钮 */
+  .btn-primary {
+    width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none;
+    border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 8px;
+  }
+  .btn-primary.small { width: auto; padding: 7px 14px; font-size: 14px; margin: 0; }
+  .btn-block { width: 100%; padding: 11px; background: var(--card); color: var(--felt); border: 1px solid var(--felt); border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+  .btn-mini { padding: 5px 12px; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); cursor: pointer; }
+  .btn-mini.danger { color: var(--accent); border-color: var(--accent); }
+  .btn-logout { width: 100%; padding: 12px; margin-top: 20px; background: none; color: var(--accent); border: 1px solid var(--accent); border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 0; font-size: 14px; }
+  .hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 10px; }
+
+  /* 登录/注册 */
+  .auth { max-width: 320px; margin: 40px auto 0; }
+  .auth-title { text-align: center; font-size: 22px; font-weight: 800; color: var(--felt); margin-bottom: 20px; }
+  .auth-tabs { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+  .atab { flex: 1; padding: 11px 0; text-align: center; font-size: 15px; border: none; background: none; color: var(--muted); cursor: pointer; }
+  .atab.on { background: var(--felt); color: #fff; font-weight: 600; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  .field input, .field textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: 15px; background: var(--card); color: var(--ink); outline: none; font-family: inherit;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--felt); }
+
+  /* 资料头 */
+  .profile-head { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 16px; margin-bottom: 14px; }
+  .avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--felt); color: #fff; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .uname { font-size: 18px; font-weight: 700; }
+  .sig { font-size: 13px; color: var(--muted); margin-top: 3px; cursor: pointer; }
+
+  /* 菜单 */
+  .menu { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 16px; font-size: 15px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item .arrow { color: var(--muted); font-size: 18px; }
+
+  /* 子页通用 */
+  .sub-head { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
+  .sub-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 15px; font-weight: 600; }
+
+  /* 雀士列表 */
+  .p-row { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .p-row .avatar { width: 36px; height: 36px; font-size: 16px; }
+  .p-name { flex: 1; font-size: 15px; font-weight: 600; }
+  .avatar-upload { border: 1px dashed var(--line); border-radius: 8px; padding: 22px; text-align: center; color: var(--muted); font-size: 13px; cursor: pointer; background: var(--card); }
+  .search-box { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; background: var(--card); color: var(--ink); outline: none; margin-bottom: 10px; }
+  .search-box:focus { border-color: var(--felt); }
+
+  /* 分段控件 */
+  .segment { display: flex; gap: 8px; margin-bottom: 12px; }
+  .seg { flex: 1; padding: 8px 0; text-align: center; font-size: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--muted); cursor: pointer; }
+  .seg.active { background: var(--felt); color: #fff; border-color: var(--felt); font-weight: 600; }
+
+  /* 规则表单 */
+  .form { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px; }
+  .form-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+  .form-row:last-child { border-bottom: none; }
+  .fl { font-size: 15px; }
+  .form-row .num { width: 90px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; text-align: right; background: var(--card); color: var(--ink); outline: none; }
+  .form-row .sel { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; background: var(--card); color: var(--ink); outline: none; }
+  .tgl { min-width: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 16px; background: #f0eadd; color: var(--muted); font-size: 13px; cursor: pointer; }
+  .tgl.on { background: var(--felt); color: #fff; border-color: var(--felt); font-weight: 600; }
+
+  textarea#sig { width: 100%; min-height: 110px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 15px; background: var(--card); color: var(--ink); outline: none; font-family: inherit; resize: none; }
+  .count { text-align: right; color: var(--muted); font-size: 12px; margin-top: 5px; }
+
+  .tabbar { position: sticky; bottom: 0; display: flex; background: var(--card); border-top: 1px solid var(--line); }
+  .tabbar .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 9px 0 8px; font-size: 11px; color: var(--muted); text-decoration: none; }
+  .tabbar .tab .t-ico { font-size: 18px; line-height: 1; }
+  .tabbar .tab.on { color: var(--accent); font-weight: 700; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 32px; transform: translateX(-50%);
+    background: rgba(44,44,44,.92); color: #fff; padding: 9px 16px; border-radius: 20px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 20; max-width: 80%;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button class="back-btn" id="back">←</button>
+    <span class="title" id="title">个人中心</span>
+  </header>
+  <main id="content"></main>
+  <nav class="tabbar">
+    <a class="tab" href="scoring-table.html"><span class="t-ico">🀄</span><span>计分风盘</span></a>
+    <a class="tab" href="statistics.html"><span class="t-ico">📊</span><span>数据统计</span></a>
+    <a class="tab on" href="profile.html"><span class="t-ico">👤</span><span>个人中心</span></a>
+  </nav>
+</div>
+<div id="toast"></div>
+
+<script>
+  // ===== 假数据 =====
+  const username = '老张';
+  let signature = '周末半庄，来战';
+  let myPlayers = [
+    { name:'张三', avatar:'张', color:'#2f6b4f' },
+    { name:'李四', avatar:'李', color:'#c0392b' },
+  ];
+  const globalUnbound = [
+    { name:'王五', avatar:'王', color:'#d4a017' },
+    { name:'赵六', avatar:'赵', color:'#4a6fa5' },
+    { name:'孙七', avatar:'孙', color:'#8e44ad' },
+    { name:'周八', avatar:'周', color:'#c76b2c' },
+  ];
+  const RULE_DEFAULTS = {
+    4: { 局数:'半庄战', 基础分:25000, 返点:30000, 本场点棒:300, 不听罚符:3000, 不满返点延局:true, 番缚:'一番缚', 切上满贯:false, 击飞:true, 终局第一无限连庄:false, 马点:'10-5', 得点保留一位小数:true },
+    3: { 局数:'半庄战', 基础分:25000, 返点:30000, 本场点棒:200, 不听罚符:3000, 不满返点延局:true, 番缚:'一番缚', 切上满贯:false, 击飞:true, 终局第一无限连庄:false, 马点:'+10/0/-10', 得点保留一位小数:true },
+    2: { 局数:'半庄战', 基础分:50000, 返点:50000, 本场点棒:300, 不听罚符:3000, 不满返点延局:true, 番缚:'一番缚', 切上满贯:false, 击飞:true, 终局第一无限连庄:false, 马点:'+10/-10', 得点保留一位小数:true },
+  };
+  const MA_OPTS = { 4:['10-5'], 3:['+10/0/-10'], 2:['+10/-10'] };
+  let rules = JSON.parse(JSON.stringify(RULE_DEFAULTS));
+
+  // ===== 状态 =====
+  const state = { loggedIn:false, view:'login', mode:4 };
+  const content = document.getElementById('content');
+  const titleEl = document.getElementById('title');
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function modeLabel(m) { return ({4:'四人',3:'三人',2:'二人'})[m]; }
+  function titleFor(v) {
+    return { hub:'个人中心', signature:'编辑签名', players:'雀士管理', createPlayer:'创建雀士', bindPlayer:'绑定雀士', rules:'规则默认设置', password:'修改密码', feedback:'意见反馈' }[v] || '个人中心';
+  }
+
+  // ===== 渲染 =====
+  function render() {
+    if (!state.loggedIn) { titleEl.textContent = '个人中心'; content.innerHTML = renderAuth(); bindAuth(); return; }
+    titleEl.textContent = titleFor(state.view);
+    const map = {
+      hub: renderHub, signature: renderSignature, players: renderPlayers,
+      createPlayer: renderCreatePlayer, bindPlayer: renderBindPlayer,
+      rules: renderRules, password: renderPassword, feedback: renderFeedback,
+    };
+    content.innerHTML = (map[state.view] || renderHub)();
+    bindView();
+  }
+
+  // 登录/注册
+  function renderAuth() {
+    const isLogin = state.view === 'login';
+    return `<div class="auth">
+      <div class="auth-title">立直麻将计分</div>
+      <div class="auth-tabs">
+        <button class="atab ${isLogin?'on':''}" data-auth="login">登录</button>
+        <button class="atab ${!isLogin?'on':''}" data-auth="register">注册</button>
+      </div>
+      <div class="field"><label>用户名</label><input id="u" placeholder="用户名"></div>
+      <div class="field"><label>密码</label><input id="p" type="password" placeholder="密码"></div>
+      ${isLogin ? '' : '<div class="field"><label>确认密码</label><input id="p2" type="password" placeholder="再次输入密码"></div>'}
+      <button class="btn-primary" id="authGo">${isLogin?'登录':'注册'}</button>
+      <div class="hint">（原型）输入任意用户名即可进入</div>
+    </div>`;
+  }
+  function bindAuth() {
+    content.querySelectorAll('[data-auth]').forEach(b => b.onclick = () => { state.view = b.dataset.auth; render(); });
+    content.querySelector('#authGo').onclick = () => {
+      state.loggedIn = true; state.view = 'hub';
+      toast('登录成功'); render();
+    };
+  }
+
+  // hub
+  function renderHub() {
+    return `
+      <div class="profile-head">
+        <span class="avatar">${esc(username[0])}</span>
+        <div>
+          <div class="uname">${esc(username)}</div>
+          <div class="sig" data-nav="signature">${signature ? esc(signature) : '点击添加个性签名'}</div>
+        </div>
+      </div>
+      <div class="menu">
+        <div class="menu-item" data-nav="players">雀士管理<span class="arrow">›</span></div>
+        <div class="menu-item" data-nav="rules">规则默认设置<span class="arrow">›</span></div>
+        <div class="menu-item" data-nav="password">修改密码<span class="arrow">›</span></div>
+        <div class="menu-item" data-nav="feedback">意见反馈<span class="arrow">›</span></div>
+      </div>
+      <button class="btn-logout" id="logout">退出登录</button>`;
+  }
+
+  // 编辑签名
+  function renderSignature() {
+    return `
+      <div class="sub-head">个性签名（≤100 字）</div>
+      <textarea id="sig" maxlength="100">${esc(signature)}</textarea>
+      <div class="count"><span id="cnt">${signature.length}</span>/100</div>
+      <button class="btn-primary" id="saveSig">保存</button>`;
+  }
+
+  // 雀士管理
+  function renderPlayers() {
+    const list = myPlayers.map(p => `
+      <div class="p-row">
+        <span class="avatar" style="background:${p.color}">${p.avatar}</span>
+        <span class="p-name">${esc(p.name)}</span>
+        <button class="btn-mini" data-edit="${esc(p.name)}">编辑</button>
+        <button class="btn-mini danger" data-unbind="${esc(p.name)}">解绑</button>
+      </div>`).join('');
+    return `
+      <div class="sub-bar"><span>我的雀士</span><button class="btn-primary small" data-nav="createPlayer">+ 创建雀士</button></div>
+      ${list || '<div class="empty">还没有雀士</div>'}
+      <button class="btn-block" data-nav="bindPlayer">绑定雀士</button>`;
+  }
+
+  // 创建雀士
+  function renderCreatePlayer() {
+    return `
+      <div class="sub-head">创建即自动绑定给我（所有权/管理权）</div>
+      <div class="field"><label>名称</label><input id="pname" placeholder="雀士名称"></div>
+      <div class="field"><label>头像</label><div class="avatar-upload" id="upAvatar">点击上传 jpg/png（≤2MB）</div></div>
+      <button class="btn-primary" id="createP">创建</button>`;
+  }
+
+  // 绑定雀士
+  function renderBindPlayer() {
+    const unbound = globalUnbound.filter(p => !myPlayers.some(m => m.name === p.name));
+    const list = unbound.map(p => `
+      <div class="p-row">
+        <span class="avatar" style="background:${p.color}">${p.avatar}</span>
+        <span class="p-name">${esc(p.name)}</span>
+        <button class="btn-mini" data-bind="${esc(p.name)}">绑定</button>
+      </div>`).join('');
+    return `
+      <div class="sub-head">全局未绑定的雀士（点「绑定」获得所有权）</div>
+      <input class="search-box" id="search" placeholder="搜索雀士">
+      <div id="bindList">${list || '<div class="empty">没有可绑定的雀士</div>'}</div>`;
+  }
+
+  // 规则默认设置
+  function numRow(label, key) {
+    return `<div class="form-row"><span class="fl">${label}</span><input type="number" class="num" data-key="${key}" value="${rules[state.mode][key]}"></div>`;
+  }
+  function selRow(label, key, opts) {
+    return `<div class="form-row"><span class="fl">${label}</span><select class="sel" data-key="${key}">${opts.map(o => `<option ${rules[state.mode][key]===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
+  }
+  function tglRow(label, key) {
+    const v = rules[state.mode][key];
+    return `<div class="form-row"><span class="fl">${label}</span><button class="tgl ${v?'on':''}" data-key="${key}">${v?'是':'否'}</button></div>`;
+  }
+  function renderRules() {
+    const seg = [4,3,2].map(m => `<button class="seg ${state.mode===m?'active':''}" data-mode="${m}">${modeLabel(m)}</button>`).join('');
+    const rows = [
+      selRow('局数', '局数', ['东风战','半庄战','一庄战']),
+      numRow('基础分', '基础分'),
+      numRow('返点', '返点'),
+      numRow('本场点棒', '本场点棒'),
+      numRow('不听罚符', '不听罚符'),
+      tglRow('不满返点延局', '不满返点延局'),
+      selRow('番缚', '番缚', ['一番缚','二番缚','四番缚']),
+      tglRow('切上满贯', '切上满贯'),
+      tglRow('击飞', '击飞'),
+      tglRow('终局第一无限连庄', '终局第一无限连庄'),
+      selRow('马点', '马点', MA_OPTS[state.mode]),
+      tglRow('得点保留一位小数', '得点保留一位小数'),
+    ].join('');
+    return `<div class="segment">${seg}</div><div class="form">${rows}</div><button class="btn-block" id="resetRules">恢复默认</button>`;
+  }
+
+  // 修改密码
+  function renderPassword() {
+    return `
+      <div class="field"><label>旧密码</label><input type="password" id="oldp" placeholder="当前密码"></div>
+      <div class="field"><label>新密码</label><input type="password" id="newp" placeholder="新密码"></div>
+      <div class="field"><label>确认新密码</label><input type="password" id="newp2" placeholder="再次输入新密码"></div>
+      <button class="btn-primary" id="savePwd">确认修改</button>`;
+  }
+
+  // 意见反馈
+  function renderFeedback() {
+    return `
+      <div class="field"><label>建议内容（必填）</label><textarea id="fb" placeholder="写下你的建议…"></textarea></div>
+      <div class="field"><label>联系方式（选填）</label><input id="contact" placeholder="微信号 / 邮箱等"></div>
+      <button class="btn-primary" id="sendFb">提交</button>`;
+  }
+
+  // ===== 事件绑定 =====
+  function bindView() {
+    // 导航
+    content.querySelectorAll('[data-nav]').forEach(el => el.onclick = () => { state.view = el.dataset.nav; render(); });
+    const logout = content.querySelector('#logout');
+    if (logout) logout.onclick = () => { state.loggedIn = false; state.view = 'login'; toast('已退出登录'); render(); };
+
+    if (state.view === 'signature') {
+      const ta = content.querySelector('#sig'), cnt = content.querySelector('#cnt');
+      ta.oninput = () => cnt.textContent = ta.value.length;
+      content.querySelector('#saveSig').onclick = () => { signature = ta.value.trim(); state.view = 'hub'; toast('签名已保存'); render(); };
+    }
+    if (state.view === 'players') {
+      content.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => toast('编辑雀士（原型：改名称/头像）'));
+      content.querySelectorAll('[data-unbind]').forEach(b => b.onclick = () => {
+        myPlayers = myPlayers.filter(p => p.name !== b.dataset.unbind);
+        toast('已解绑（所有权已释放）'); render();
+      });
+    }
+    if (state.view === 'createPlayer') {
+      content.querySelector('#upAvatar').onclick = () => toast('上传头像（原型）');
+      content.querySelector('#createP').onclick = () => {
+        const nm = content.querySelector('#pname').value.trim();
+        if (!nm) { toast('请输入名称'); return; }
+        myPlayers.push({ name:nm, avatar:nm[0], color:'#2f6b4f' });
+        state.view = 'players'; toast('已创建并绑定'); render();
+      };
+    }
+    if (state.view === 'bindPlayer') {
+      const search = content.querySelector('#search');
+      const bindList = content.querySelector('#bindList');
+      const redraw = () => {
+        const q = search.value.trim();
+        const unbound = globalUnbound.filter(p => !myPlayers.some(m => m.name === p.name) && (!q || p.name.includes(q)));
+        bindList.innerHTML = unbound.map(p => `
+          <div class="p-row">
+            <span class="avatar" style="background:${p.color}">${p.avatar}</span>
+            <span class="p-name">${esc(p.name)}</span>
+            <button class="btn-mini" data-bind="${esc(p.name)}">绑定</button>
+          </div>`).join('') || '<div class="empty">没有可绑定的雀士</div>';
+        bindList.querySelectorAll('[data-bind]').forEach(b => b.onclick = () => {
+          const p = globalUnbound.find(x => x.name === b.dataset.bind);
+          myPlayers.push(p); toast('已绑定'); render();
+        });
+      };
+      search.oninput = redraw;
+      redraw();
+    }
+    if (state.view === 'rules') {
+      content.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { state.mode = Number(b.dataset.mode); render(); });
+      content.querySelectorAll('.num').forEach(i => i.oninput = () => { rules[state.mode][i.dataset.key] = Number(i.value) || 0; });
+      content.querySelectorAll('.sel').forEach(s => s.onchange = () => { rules[state.mode][s.dataset.key] = s.value; });
+      content.querySelectorAll('.tgl').forEach(b => b.onclick = () => { rules[state.mode][b.dataset.key] = !rules[state.mode][b.dataset.key]; render(); });
+      content.querySelector('#resetRules').onclick = () => { rules[state.mode] = JSON.parse(JSON.stringify(RULE_DEFAULTS[state.mode])); toast('已恢复默认'); render(); };
+    }
+    if (state.view === 'password') {
+      content.querySelector('#savePwd').onclick = () => {
+        if (!content.querySelector('#oldp').value) { toast('请输入旧密码'); return; }
+        toast('密码已修改（原型）'); state.view = 'hub'; render();
+      };
+    }
+    if (state.view === 'feedback') {
+      content.querySelector('#sendFb').onclick = () => {
+        if (!content.querySelector('#fb').value.trim()) { toast('请填写建议内容'); return; }
+        toast('已提交（原型）'); state.view = 'hub'; render();
+      };
+    }
+  }
+
+  document.getElementById('back').onclick = () => {
+    if (!state.loggedIn) { toast('返回（原型）'); return; }
+    if (state.view === 'hub') toast('返回（原型）');
+    else { state.view = 'hub'; render(); }
+  };
+
+  render();
+</script>
+</body>
+</html>
