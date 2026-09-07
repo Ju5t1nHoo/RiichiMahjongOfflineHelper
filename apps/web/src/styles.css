@@ -50,14 +50,17 @@ body {
 .placeholder .big { font-size: 40px; margin-bottom: 12px; }
 
 /* 计分风盘 */
-.score { display: flex; flex-direction: column; height: calc(100vh - 80px); overflow: hidden; }
+.score { display: flex; flex-direction: column; height: calc(100vh - 80px); height: calc(100dvh - 80px); overflow: hidden; }
 .score-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .meta-title { font-size: 14px; font-weight: 600; }
 .meta-mode { display: flex; gap: 6px; }
 .meta-mode button { padding: 4px 12px; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--muted); cursor: pointer; }
 .meta-mode button.on { background: var(--felt); color: #fff; border-color: var(--felt); font-weight: 600; }
 
-.table { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; background: var(--felt); border-radius: 14px; padding: 10px; aspect-ratio: 1/1; margin: auto; max-width: min(100%, calc(100vh - 230px)); }
+.table { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; background: var(--felt); border-radius: 14px; padding: 10px; }
+.table-area { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
+.table-area .table { width: min(100cqw, 100cqh); aspect-ratio: 1 / 1; }
+.sheet .table { width: 100%; aspect-ratio: 1 / 1; }
 .start-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 0 32px; }
 .start-title { font-size: 24px; font-weight: 800; color: var(--felt); }
 .score-line { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 13px; }

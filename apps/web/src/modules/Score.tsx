@@ -358,34 +358,36 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
         </div>
       ) : (
         <>
-          <div className="table">
-            {SEATS[mode].map(([pos, angle], i) => {
-              const windOf = WIND[mode][(i - dealer + n) % n];
-              const isDealer = i === dealer;
-              return (
-                <div key={pos} className="seat" style={{ gridArea: pos }}>
-                  <div className={`card ${isDealer ? 'dealer' : ''}`} style={{ transform: `rotate(${angle}deg)`, cursor: 'pointer' }} onClick={() => toggleRiichi(i)}>
-                    {riichi.has(i) && <div className="riichi-stick" />}
-                    <div className="badges">
-                      <span className="badge wind">{windOf}</span>
-                      {isDealer && <span className="badge dealer">庄</span>}
+          <div className="table-area">
+            <div className="table">
+              {SEATS[mode].map(([pos, angle], i) => {
+                const windOf = WIND[mode][(i - dealer + n) % n];
+                const isDealer = i === dealer;
+                return (
+                  <div key={pos} className="seat" style={{ gridArea: pos }}>
+                    <div className={`card ${isDealer ? 'dealer' : ''}`} style={{ transform: `rotate(${angle}deg)`, cursor: 'pointer' }} onClick={() => toggleRiichi(i)}>
+                      {riichi.has(i) && <div className="riichi-stick" />}
+                      <div className="badges">
+                        <span className="badge wind">{windOf}</span>
+                        {isDealer && <span className="badge dealer">庄</span>}
+                      </div>
+                      <div className="name-row">
+                        <span className="avatar">{seats[i].name[0]}</span>
+                        <span className="name">{seats[i].name}</span>
+                      </div>
+                      <div className="points"><RollingNumber value={seats[i].points} /></div>
                     </div>
-                    <div className="name-row">
-                      <span className="avatar">{seats[i].name[0]}</span>
-                      <span className="name">{seats[i].name}</span>
-                    </div>
-                    <div className="points"><RollingNumber value={seats[i].points} /></div>
                   </div>
+                );
+              })}
+              <div className="center" style={{ gridArea: 'center' }}>
+                <div className="meta-line">{({ 4: '四人', 3: '三人', 2: '二人' })[mode]} · {rule.length}</div>
+                <div className="round">{WIND[mode][wind % WIND[mode].length]}{hand}局</div>
+                <div className="sub">{honba}本场 · 供托 {pot}</div>
+                <div className="dice-row" onClick={rollDice}>
+                  <Die value={dice.a} rolling={rolling} />
+                  <Die value={dice.b} rolling={rolling} />
                 </div>
-              );
-            })}
-            <div className="center" style={{ gridArea: 'center' }}>
-              <div className="meta-line">{({ 4: '四人', 3: '三人', 2: '二人' })[mode]} · {rule.length}</div>
-              <div className="round">{WIND[mode][wind % WIND[mode].length]}{hand}局</div>
-              <div className="sub">{honba}本场 · 供托 {pot}</div>
-              <div className="dice-row" onClick={rollDice}>
-                <Die value={dice.a} rolling={rolling} />
-                <Die value={dice.b} rolling={rolling} />
               </div>
             </div>
           </div>
