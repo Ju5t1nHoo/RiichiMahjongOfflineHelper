@@ -48,21 +48,20 @@ export function advance(state: RoundState, outcome: Outcome): RoundState {
 /**
  * 终局顺位：得点 = (素点 − 返点)/1000 + TOP赏 + 马点。
  * TOP赏（オカ）= (返点 − 基础分) × 人数 ÷ 1000，归第一名；使总得点归零。
- * 按素点从高到低排；并列取同名次（后一名次跳过）。
+ * 按素点从高到低排；同分时按东一局起家的初始座次（东→南→西→北，亲家优先）打破平局。
  */
 export function finalScores(
   rawScores: number[],
   rule: RuleSnapshot,
+  initialDealer = 0,
 ): { score: number; rank: number }[] {
   const n = rawScores.length;
   const order = rawScores
     .map((raw, seat) => ({ seat, raw }))
-    .sort((a, b) => b.raw - a.raw);
+    .sort((a, b) => b.raw - a.raw || ((a.seat - initialDealer + n) % n) - ((b.seat - initialDealer + n) % n));
 
   const rank = new Array<number>(n).fill(0);
-  order.forEach((o, i) => {
-    rank[o.seat] = i > 0 && o.raw === order[i - 1].raw ? rank[order[i - 1].seat] : i + 1;
-  });
+  order.forEach((o, i) => { rank[o.seat] = i + 1; });
 
   const topBonus = ((rule.oka - rule.startPoints) * n) / 1000;
   return rawScores.map((raw, i) => {
@@ -74,9 +73,9 @@ export function finalScores(
   });
 }
 
-/** 游戏长度的场数：东风战 1、半庄战 2、一庄战 4 */
+/** 游戏长度的场数：东风战 1、半庄战 2、一庄战 4、无限庄战 Infinity（不因场风到圈自动结束） */
 export function gameEndWind(length: GameLength): number {
-  return { 东风战: 1, 半庄战: 2, 一庄战: 4 }[length];
+  return { 东风战: 1, 半庄战: 2, 一庄战: 4, 无限庄战: Infinity }[length];
 }
 
 /**

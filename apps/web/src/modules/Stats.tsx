@@ -47,24 +47,26 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
 
   return (
     <div>
-      <div className="tabs2">
-        {BLOCKS.map((b) => (
-          <button key={b.key} className={`tab2 ${block === b.key ? 'on' : ''}`} onClick={() => setBlock(b.key)}>{b.label}</button>
-        ))}
-      </div>
-      <div className="segment">
-        {[4, 3, 2].map((m) => (
-          <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>
-        ))}
-      </div>
-
-      {block === 'rank' && (
-        <div className="sort-row">
-          {[['total', '总得点'], ['avgRank', '平均顺位'], ['games', '牌局数']].map(([k, l]) => (
-            <button key={k} className={`sort ${sort === k ? 'on' : ''}`} onClick={() => setSort(k)}>{l}</button>
+      <div className="stats-head">
+        <div className="tabs2">
+          {BLOCKS.map((b) => (
+            <button key={b.key} className={`tab2 ${block === b.key ? 'on' : ''}`} onClick={() => setBlock(b.key)}>{b.label}</button>
           ))}
         </div>
-      )}
+        <div className="segment">
+          {[4, 3, 2].map((m) => (
+            <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>
+          ))}
+        </div>
+
+        {block === 'rank' && (
+          <div className="sort-row">
+            {[['total', '总得点'], ['avgRank', '平均顺位'], ['games', '牌局数']].map(([k, l]) => (
+              <button key={k} className={`sort ${sort === k ? 'on' : ''}`} onClick={() => setSort(k)}>{l}</button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {error && <div className="error">{error}</div>}
       {!error && data.length === 0 && <div className="placeholder">暂无数据</div>}

@@ -51,10 +51,17 @@ describe('终局顺位 finalScores', () => {
     expect(r[3].score).toBe(-15.6); // -5.6 - 10
   });
 
-  it('并列取同名次', () => {
+  it('同分按起家初始座次打破平局（起家为 0）', () => {
     const r = finalScores([30200, 35600, 30200, 24400], rule4);
-    // 35600 第 1；两个 30200 并列第 2；24400 第 4
-    expect(r.map((x) => x.rank)).toEqual([2, 1, 2, 4]);
+    // 35600 第 1；30200 座位0(东) 第 2、座位2(西) 第 3；24400 第 4
+    expect(r.map((x) => x.rank)).toEqual([2, 1, 3, 4]);
+  });
+
+  it('同分按起家初始座次（东→南→西→北），非终局座位', () => {
+    // 起家 = seat 2 → seat2=东, seat3=南, seat0=西, seat1=北
+    const r = finalScores([25000, 30000, 30000, 20000], rule4, 2);
+    // 30000 两家：seat2(东) 第1、seat1(北) 第2；25000 seat0 第3；20000 seat3 第4
+    expect(r.map((x) => x.rank)).toEqual([3, 2, 1, 4]);
   });
 
   it('不保留小数则取整', () => {
@@ -97,5 +104,13 @@ describe('终局终止 shouldEnd', () => {
   it('东风战打完东场（wind=1）即结束', () => {
     expect(gameEndWind('东风战')).toBe(1);
     expect(shouldEnd(state4({ wind: 1 }), { ...ruleHalf, length: '东风战' }, [35000, 25000, 20000, 20000], { kind: 'win', winnerIsDealer: false })).toBe(true);
+  });
+
+  it('无限庄战：不因场风到圈自动结束（击飞除外）', () => {
+    expect(gameEndWind('无限庄战')).toBe(Infinity);
+    const ruleInf = { ...ruleHalf, length: '无限庄战' as const };
+    expect(shouldEnd(state4({ wind: 99 }), ruleInf, [35000, 25000, 20000, 20000], { kind: 'win', winnerIsDealer: false })).toBe(false);
+    // 击飞仍立即终局
+    expect(shouldEnd(state4({ wind: 99 }), ruleInf, [35000, -1000, 20000, 20000], { kind: 'win', winnerIsDealer: false })).toBe(true);
   });
 });

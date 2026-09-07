@@ -137,7 +137,7 @@ function Rules({ back }: { back: () => void }) {
         {[4, 3, 2].map((m) => <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>)}
       </div>
       <div className="form">
-        {row('局数', 'length', sel('length', ['东风战', '半庄战', '一庄战']))}
+        {row('局数', 'length', sel('length', ['东风战', '半庄战', '一庄战', '无限庄战']))}
         {row('基础分', 'startPoints', num('startPoints'))}
         {row('返点', 'oka', num('oka'))}
         {row('本场点棒', 'honbaStick', num('honbaStick'))}

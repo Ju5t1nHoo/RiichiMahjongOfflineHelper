@@ -2,7 +2,7 @@ export type Mode = 4 | 3 | 2;
 
 export type SettlementType = 'RON' | 'TSUMO' | 'DRAW' | 'CHOMBO';
 
-export type GameLength = '东风战' | '半庄战' | '一庄战';
+export type GameLength = '东风战' | '半庄战' | '一庄战' | '无限庄战';
 export type HanMin = '一番缚' | '二番缚' | '三番缚' | '四番缚' | '五番缚';
 
 /** 规则快照（对应 requirements §5 参数表） */

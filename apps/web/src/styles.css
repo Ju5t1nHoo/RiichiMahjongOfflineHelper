@@ -50,14 +50,14 @@ body {
 .placeholder .big { font-size: 40px; margin-bottom: 12px; }
 
 /* 计分风盘 */
-.score { display: flex; flex-direction: column; min-height: calc(100vh - 48px); }
+.score { display: flex; flex-direction: column; height: calc(100vh - 80px); overflow: hidden; }
 .score-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .meta-title { font-size: 14px; font-weight: 600; }
 .meta-mode { display: flex; gap: 6px; }
 .meta-mode button { padding: 4px 12px; font-size: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--muted); cursor: pointer; }
 .meta-mode button.on { background: var(--felt); color: #fff; border-color: var(--felt); font-weight: 600; }
 
-.table { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; background: var(--felt); border-radius: 14px; padding: 10px; aspect-ratio: 1/1; margin: auto 0; }
+.table { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); grid-template-areas: '. top .' 'left center right' '. bottom .'; gap: 6px; background: var(--felt); border-radius: 14px; padding: 10px; aspect-ratio: 1/1; margin: auto; max-width: min(100%, calc(100vh - 230px)); }
 .start-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 0 32px; }
 .start-title { font-size: 24px; font-weight: 800; color: var(--felt); }
 .score-line { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; font-size: 13px; }
@@ -83,7 +83,21 @@ body {
 
 .center { grid-area: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: var(--felt); color: #fff; border-radius: 12px; }
 .center .round { font-size: 22px; font-weight: 800; }
+.center .meta-line { font-size: 13px; font-weight: 700; }
 .center .sub { font-size: 12px; opacity: .85; }
+.dealer-toggle { padding: 2px 8px; font-size: 11px; border: 1px solid var(--line); border-radius: 10px; background: #f0eadd; color: var(--muted); cursor: pointer; }
+.dealer-toggle.on { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.dice-row { display: flex; gap: 8px; margin-top: 4px; cursor: pointer; }
+.die { position: relative; width: 26px; height: 26px; background: #fff; border: 1px solid var(--line); border-radius: 6px; display: inline-block; }
+.die .dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); transform: translate(-50%, -50%); }
+.die.rolling { animation: diceShake 0.12s ease-in-out infinite; }
+@keyframes diceShake {
+  0% { transform: rotate(0deg) scale(1); }
+  25% { transform: rotate(12deg) scale(1.12); }
+  50% { transform: rotate(-12deg) scale(1.12); }
+  75% { transform: rotate(8deg) scale(1.05); }
+  100% { transform: rotate(0deg) scale(1); }
+}
 
 .settle-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px 0 16px; }
 .settle-opt { padding: 13px 0; font-size: 15px; font-weight: 700; color: #fff; background: var(--accent); border: none; border-radius: 12px; cursor: pointer; letter-spacing: 1px; }
@@ -120,6 +134,7 @@ body {
 .rule-hint { font-size: 13px; color: var(--muted); padding: 8px 10px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
 
 /* 数据统计 + 个人中心 */
+.stats-head { position: sticky; top: 0; z-index: 10; background: var(--bg); margin: -16px -16px 12px; padding: 16px 16px 0; }
 .tabs2 { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
 .tab2 { flex: 1; padding: 10px 0; font-size: 14px; border: none; background: none; color: var(--muted); cursor: pointer; }
 .tab2.on { background: var(--felt); color: #fff; font-weight: 600; }

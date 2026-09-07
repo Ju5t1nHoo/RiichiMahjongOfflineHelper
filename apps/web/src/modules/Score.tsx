@@ -25,6 +25,7 @@ const SEATS: Record<Mode, [string, number][]> = {
   2: [['top', 180], ['bottom', 0]],
 };
 const WIND: Record<Mode, string[]> = { 4: ['东', '南', '西', '北'], 3: ['东', '南', '西'], 2: ['东', '西'] };
+const POS_LABEL: Record<string, string> = { top: '上', left: '左', bottom: '下', right: '右' };
 const NAMES = ['张三', '李四', '王五', '赵六'];
 const AMOUNTS = [8000, 12000, 16000, 24000, 32000];
 
@@ -83,6 +84,25 @@ function RollingNumber({ value }: { value: number }) {
   }, [value]);
   return <>{display}</>;
 }
+
+const DICE_DOTS: Record<number, [number, number][]> = {
+  1: [[0.5, 0.5]],
+  2: [[0.25, 0.25], [0.75, 0.75]],
+  3: [[0.25, 0.25], [0.5, 0.5], [0.75, 0.75]],
+  4: [[0.25, 0.25], [0.75, 0.25], [0.25, 0.75], [0.75, 0.75]],
+  5: [[0.25, 0.25], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.75, 0.75]],
+  6: [[0.25, 0.25], [0.25, 0.5], [0.25, 0.75], [0.75, 0.25], [0.75, 0.5], [0.75, 0.75]],
+};
+
+function Die({ value, rolling }: { value: number; rolling: boolean }) {
+  return (
+    <span className={`die ${rolling ? 'rolling' : ''}`}>
+      {DICE_DOTS[value].map(([x, y], i) => (
+        <span key={i} className="dot" style={{ left: `${x * 100}%`, top: `${y * 100}%` }} />
+      ))}
+    </span>
+  );
+}
 interface SeatState { name: string; points: number; }
 interface SheetState {
   type: SheetType;
@@ -102,6 +122,7 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
   const [mode, setMode] = useState<Mode>(4);
   const [seats, setSeats] = useState<SeatState[]>(() => NAMES.slice(0, 4).map((name) => ({ name, points: 25000 })));
   const [dealer, setDealer] = useState(0);
+  const [initialDealer, setInitialDealer] = useState(0);
   const [honba, setHonba] = useState(0);
   const [wind, setWind] = useState(0);
   const [hand, setHand] = useState(1);
@@ -112,12 +133,14 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
   const [seq, setSeq] = useState(1);
   const [saveMsg, setSaveMsg] = useState('');
   const [gameOver, setGameOver] = useState(false);
-  const [setup, setSetup] = useState<{ names: string[]; selections: (string | null)[] } | null>(null);
+  const [setup, setSetup] = useState<{ names: string[]; selections: (string | null)[]; startPoints: number[] } | null>(null);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [rule, setRule] = useState<Record<string, any>>(() => ({ ...RULE_FIELDS[4] }));
   const [started, setStarted] = useState(false);
   const [handLog, setHandLog] = useState<{ seq: number; label: string; deltas: number[] }[]>([]);
   const [endInfo, setEndInfo] = useState<{ raw: number[]; results: { score: number; rank: number }[] } | null>(null);
+  const [dice, setDice] = useState({ a: 1, b: 1 });
+  const [rolling, setRolling] = useState(false);
 
   useEffect(() => {
     if (!resume) return;
@@ -129,6 +152,7 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
       points: ls.points?.[i] ?? base,
     })));
     setDealer(ls.dealer ?? 0);
+    setInitialDealer(ls.initialDealer ?? ls.dealer ?? 0);
     setHonba(ls.honba ?? 0);
     setWind(ls.wind ?? 0);
     setHand(ls.hand ?? 1);
@@ -162,10 +186,26 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
     }
   };
 
+  const rollDice = () => {
+    if (rolling) return;
+    setRolling(true);
+    const endA = 1 + Math.floor(Math.random() * 6);
+    const endB = 1 + Math.floor(Math.random() * 6);
+    let count = 0;
+    const id = window.setInterval(() => {
+      setDice({ a: 1 + Math.floor(Math.random() * 6), b: 1 + Math.floor(Math.random() * 6) });
+      if (++count >= 10) {
+        window.clearInterval(id);
+        setDice({ a: endA, b: endB });
+        setRolling(false);
+      }
+    }, 90);
+  };
+
   const reset = (m: Mode) => {
     setMode(m);
     setSeats(NAMES.slice(0, m).map((name) => ({ name, points: m === 2 ? 50000 : 25000 })));
-    setDealer(0); setHonba(0); setWind(0); setHand(1);
+    setDealer(0); setInitialDealer(0); setHonba(0); setWind(0); setHand(1);
     setRiichi(new Set()); setPot(0); setGame(null); setSeq(1); setSaveMsg('');
     setRule({ ...RULE_FIELDS[m] }); setGameOver(false);
     setStarted(false); setHandLog([]); setEndInfo(null);
@@ -181,22 +221,22 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
         if (s) setRule({ ...RULE_FIELDS[mode], ...(s as any) });
       } catch { /* ignore */ }
     }
-    setSetup({ names: Array(mode).fill(''), selections: Array(mode).fill(null) });
+    setSetup({ names: Array(mode).fill(''), selections: Array(mode).fill(null), startPoints: Array(mode).fill(Number(rule.startPoints) || 25000) });
   };
 
   const startGameFromSetup = async (dealerIdx: number) => {
     if (!setup) return;
-    const startPoints = mode === 2 ? 50000 : 25000;
+    const startPoints = setup.startPoints;
     const names = setup.names.map((name, i) => name || `玩家${i + 1}`);
     const participants = setup.names.map((name, i) => {
       const sel = setup.selections[i];
       const p = sel ? allPlayers.find((x) => x.id === sel) : null;
       return p ? { seat: i, playerId: p.id } : { seat: i, tempName: name || `玩家${i + 1}` };
     });
-    const freshLive = { dealer: dealerIdx, honba: 0, wind: 0, hand: 1, points: names.map(() => startPoints), pot: 0, seq: 1 };
+    const freshLive = { dealer: dealerIdx, initialDealer: dealerIdx, honba: 0, wind: 0, hand: 1, points: startPoints, pot: 0, seq: 1 };
     // 本地开局（游客与登录通用）
-    setSeats(names.map((name) => ({ name, points: startPoints })));
-    setDealer(dealerIdx); setHonba(0); setWind(0); setHand(1);
+    setSeats(names.map((name, i) => ({ name, points: startPoints[i] })));
+    setDealer(dealerIdx); setInitialDealer(dealerIdx); setHonba(0); setWind(0); setHand(1);
     setRiichi(new Set()); setPot(0); setSeq(1);
     setHandLog([]); setGameOver(false); setEndInfo(null); setStarted(true);
     setSaveMsg(''); setSetup(null);
@@ -213,7 +253,7 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
     // 完场剩余供托归第一名
     const topIdx = raw.indexOf(Math.max(...raw));
     const adjusted = raw.map((r, i) => (i === topIdx ? r + pot * 1000 : r));
-    const results = finalScores(adjusted, toRuleSnapshot(rule));
+    const results = finalScores(adjusted, toRuleSnapshot(rule), initialDealer);
     return { raw: adjusted, results };
   };
 
@@ -281,7 +321,7 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
       const leftoverPot = winnerIdx != null ? 0 : pot;
       const topIdx = newPoints.indexOf(Math.max(...newPoints));
       const adjusted = newPoints.map((p, i) => (i === topIdx ? p + leftoverPot * 1000 : p));
-      setEndInfo({ raw: adjusted, results: finalScores(adjusted, toRuleSnapshot(rule)) });
+      setEndInfo({ raw: adjusted, results: finalScores(adjusted, toRuleSnapshot(rule), initialDealer) });
       setGameOver(true);
     }
     if (winnerIdx != null) { setRiichi(new Set()); setPot(0); } else { setRiichi(new Set()); }
@@ -318,10 +358,6 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
         </div>
       ) : (
         <>
-          <div className="score-meta">
-            <span className="meta-title">{({ 4: '四人', 3: '三人', 2: '二人' })[mode]} · {rule.length}</span>
-          </div>
-
           <div className="table">
             {SEATS[mode].map(([pos, angle], i) => {
               const windOf = WIND[mode][(i - dealer + n) % n];
@@ -344,8 +380,13 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
               );
             })}
             <div className="center" style={{ gridArea: 'center' }}>
+              <div className="meta-line">{({ 4: '四人', 3: '三人', 2: '二人' })[mode]} · {rule.length}</div>
               <div className="round">{WIND[mode][wind % WIND[mode].length]}{hand}局</div>
               <div className="sub">{honba}本场 · 供托 {pot}</div>
+              <div className="dice-row" onClick={rollDice}>
+                <Die value={dice.a} rolling={rolling} />
+                <Die value={dice.b} rolling={rolling} />
+              </div>
             </div>
           </div>
 
@@ -545,8 +586,8 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
 }
 
 function Setup({ setup, setSetup, allPlayers, user, mode, setMode, onConfirm, rule, setRule }: {
-  setup: { names: string[]; selections: (string | null)[] };
-  setSetup: (s: { names: string[]; selections: (string | null)[] } | null) => void;
+  setup: { names: string[]; selections: (string | null)[]; startPoints: number[] };
+  setSetup: (s: { names: string[]; selections: (string | null)[]; startPoints: number[] } | null) => void;
   allPlayers: any[];
   user: AuthUser | null;
   mode: Mode;
@@ -564,12 +605,17 @@ function Setup({ setup, setSetup, allPlayers, user, mode, setMode, onConfirm, ru
     setSetup({
       names: setup.names.map((n, k) => (k === i ? name : n)),
       selections: setup.selections.map((s, k) => (k === i ? selection : s)),
+      startPoints: setup.startPoints,
     });
+
+  const setStartPoint = (i: number, v: number) =>
+    setSetup({ ...setup, startPoints: setup.startPoints.map((sp, k) => (k === i ? v : sp)) });
 
   const myPlayers = allPlayers.filter((p) => p.boundUserId === user?.id);
   const q = search.trim().toLowerCase();
   const searched = q ? allPlayers.filter((p) => (p.name || '').toLowerCase().includes(q)) : [];
   const isTaken = (id: string) => setup.selections.some((s, i) => i !== pickerSeat && s === id);
+  const totalOffset = setup.startPoints.reduce((a, b) => a + b, 0) - Number(rule.startPoints) * mode;
 
   const openPicker = (i: number) => { setSearch(''); setTempName(''); setPickerSeat(i); };
   const pick = (p: any) => { if (pickerSeat != null) set(pickerSeat, p.name, p.id); setPickerSeat(null); };
@@ -620,7 +666,7 @@ function Setup({ setup, setSetup, allPlayers, user, mode, setMode, onConfirm, ru
             <div className="sec-label">模式</div>
             <div className="chips">
               {[4, 3, 2].map((m) => (
-                <button key={m} className={`chip ${mode === m ? 'on' : ''}`} onClick={() => { setMode(m as Mode); setDealerIdx(0); setSetup({ names: Array(m).fill(''), selections: Array(m).fill(null) }); }}>{m}人</button>
+                <button key={m} className={`chip ${mode === m ? 'on' : ''}`} onClick={() => { setMode(m as Mode); setDealerIdx(0); setSetup({ names: Array(m).fill(''), selections: Array(m).fill(null), startPoints: Array(m).fill(m === 2 ? 50000 : 25000) }); }}>{m}人</button>
               ))}
             </div>
             <div className="sec-label">各家雀士（点击位置选人）</div>
@@ -628,12 +674,12 @@ function Setup({ setup, setSetup, allPlayers, user, mode, setMode, onConfirm, ru
               {SEATS[mode].map(([pos, angle], i) => (
                 <div key={pos} className="seat" style={{ gridArea: pos }}>
                   <div className={`card ${dealerIdx === i ? 'dealer' : ''}`} style={{ transform: `rotate(${angle}deg)`, cursor: 'pointer' }} onClick={() => openPicker(i)}>
-                    <div className="badges">{dealerIdx === i && <span className="badge dealer">庄</span>}</div>
+                    <button className={`dealer-toggle ${dealerIdx === i ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); setDealerIdx(i); }}>庄</button>
                     <div className="name-row">
                       <span className="avatar">{setup.names[i]?.[0] || '?'}</span>
                       <span className="name">{setup.names[i] || '选人'}</span>
                     </div>
-                    <span className="badge">{({ top: '上', left: '左', bottom: '下', right: '右' } as Record<string, string>)[pos]}</span>
+                    <span className="badge">{POS_LABEL[pos]}</span>
                   </div>
                 </div>
               ))}
@@ -642,10 +688,23 @@ function Setup({ setup, setSetup, allPlayers, user, mode, setMode, onConfirm, ru
               </div>
             </div>
             <div className="rule-hint">临时雀士（手填名称）仅本局有效，不计入数据统计。</div>
+            <div className="sec-label">各家基础分（默认 {rule.startPoints}）</div>
+            <div className="form">
+              {setup.startPoints.map((sp, i) => (
+                <div key={i} className="form-row">
+                  <span className="fl">{POS_LABEL[SEATS[mode][i][0]]}</span>
+                  <input type="number" value={sp} onChange={(e) => setStartPoint(i, Number(e.target.value))} />
+                </div>
+              ))}
+              <div className="form-row">
+                <span className="fl">总分偏移</span>
+                <span className="fl" style={{ fontWeight: 700 }}>{totalOffset >= 0 ? '+' : ''}{totalOffset}</span>
+              </div>
+            </div>
             <div className="sec-label">规则（本局有效，不存默认）</div>
             <div className="form">
-              <div className="form-row"><span className="fl">局数</span><select value={rule.length} onChange={(e) => setRule({ ...rule, length: e.target.value })}>{['东风战', '半庄战', '一庄战'].map((o) => <option key={o}>{o}</option>)}</select></div>
-              <div className="form-row"><span className="fl">基础分</span><input type="number" value={rule.startPoints} onChange={(e) => setRule({ ...rule, startPoints: Number(e.target.value) })} /></div>
+              <div className="form-row"><span className="fl">局数</span><select value={rule.length} onChange={(e) => setRule({ ...rule, length: e.target.value })}>{['东风战', '半庄战', '一庄战', '无限庄战'].map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="form-row"><span className="fl">基础分</span><input type="number" value={rule.startPoints} onChange={(e) => { const v = Number(e.target.value); setRule({ ...rule, startPoints: v }); setSetup({ ...setup, startPoints: setup.startPoints.map(() => v) }); }} /></div>
               <div className="form-row"><span className="fl">返点</span><input type="number" value={rule.oka} onChange={(e) => setRule({ ...rule, oka: Number(e.target.value) })} /></div>
               <div className="form-row"><span className="fl">本场点棒</span><input type="number" value={rule.honbaStick} onChange={(e) => setRule({ ...rule, honbaStick: Number(e.target.value) })} /></div>
               <div className="form-row"><span className="fl">不听罚符</span><input type="number" value={rule.notenBappu} onChange={(e) => setRule({ ...rule, notenBappu: Number(e.target.value) })} /></div>
