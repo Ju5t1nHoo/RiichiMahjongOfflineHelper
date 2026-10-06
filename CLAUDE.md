@@ -35,6 +35,7 @@ npx pnpm@10 --filter @riichi/api exec tsc --noEmit   # api 类型检查
 ```
 
 - monorepo：`apps/web`（React+Vite）、`apps/api`（Hono+Prisma）、`packages/rules`（结算计算，单一来源）。
+- Node 版本：本机 nvm 默认 Node 16.16.0（`system` 为 Node 25.8.0）。`vite build`（web）与 `vitest`（rules 测试）要求 Node ≥18，在 Node 16 下会报 `crypto.getRandomValues is not a function`；跑这些前先 `nvm use system`（或装 Node ≥18）。`tsc --noEmit` 在 Node 16 下也能跑。
 - 后端跑通需 Postgres（`DATABASE_URL`）+ `prisma migrate`；完整容器化部署见 `docs/technical-design.md` §3。
 
 ## 最关键的架构事实（先读 ADR-0001）
