@@ -13,10 +13,10 @@ import {
   type Mode,
   type RoundContext,
   type Outcome,
-  type RuleSnapshot,
   type RonWinner,
   type SettleItem,
 } from '@riichi/rules';
+import { UMA_OPTIONS, RULE_FIELDS, toRuleSnapshot, umaArray, CUSTOM_UMA } from '../ruleConfig';
 import { games, players, me, type AuthUser } from '../api';
 
 const SEATS: Record<Mode, [string, number][]> = {
@@ -30,35 +30,7 @@ const NAMES = ['张三', '李四', '王五', '赵六'];
 const AMOUNTS = [8000, 12000, 16000, 24000, 32000];
 
 const honbaStick = (m: Mode) => (m === 3 ? 200 : 300);
-const UMA_MAP: Record<string, number[]> = {
-  '10-5': [10, 5, -5, -10],
-  '10-0': [10, 0, 0, -10],
-  '5-10': [5, 10, -10, -5],
-  '20-10': [20, 10, -10, -20],
-  '30-10': [30, 10, -10, -30],
-  '+10/0/-10': [10, 0, -10],
-  '+20/0/-20': [20, 0, -20],
-  '+10/+5/-15': [10, 5, -15],
-  '+10/-10': [10, -10],
-  '+20/-20': [20, -20],
-};
-const UMA_OPTIONS: Record<Mode, string[]> = {
-  4: ['10-5', '10-0', '5-10', '20-10', '30-10'],
-  3: ['+10/0/-10', '+20/0/-20', '+10/+5/-15'],
-  2: ['+10/-10', '+20/-20'],
-};
 const HAN_MIN_OPTIONS = ['一番缚', '二番缚', '三番缚', '四番缚', '五番缚'];
-const hanMinOf = (h: string) => ({ '一番缚': 1, '二番缚': 2, '三番缚': 3, '四番缚': 4, '五番缚': 5 } as Record<string, number>)[h] ?? 1;
-const RULE_FIELDS: Record<Mode, Record<string, any>> = {
-  4: { length: '半庄战', startPoints: 25000, oka: 30000, honbaStick: 300, notenBappu: 3000, extendBelowOka: true, hanMin: '一番缚', kiriage: false, hakoshita: true, unlimitedTopRenchan: false, uma: '10-5', keepDecimal: true },
-  3: { length: '半庄战', startPoints: 25000, oka: 30000, honbaStick: 200, notenBappu: 3000, extendBelowOka: true, hanMin: '一番缚', kiriage: false, hakoshita: true, unlimitedTopRenchan: false, uma: '+10/0/-10', keepDecimal: true },
-  2: { length: '半庄战', startPoints: 50000, oka: 50000, honbaStick: 300, notenBappu: 3000, extendBelowOka: true, hanMin: '一番缚', kiriage: false, hakoshita: true, unlimitedTopRenchan: false, uma: '+10/-10', keepDecimal: true },
-};
-const toRuleSnapshot = (r: Record<string, any>): RuleSnapshot => ({
-  length: r.length, startPoints: Number(r.startPoints), oka: Number(r.oka), honbaStick: Number(r.honbaStick), notenBappu: Number(r.notenBappu),
-  extendBelowOka: !!r.extendBelowOka, hanMin: r.hanMin, kiriage: !!r.kiriage, hakoshita: !!r.hakoshita,
-  unlimitedTopRenchan: !!r.unlimitedTopRenchan, uma: UMA_MAP[r.uma] ?? [10, 5, -5, -10], keepDecimal: !!r.keepDecimal,
-});
 
 type SheetType = '荣和' | '自摸' | '流局' | '罚符';
 
@@ -407,14 +379,14 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
         </>
       )}
 
-      {sheet && <Sheet sheet={sheet} setSheet={setSheet} n={n} dealer={dealer} honba={honba} pot={pot} mode={mode} names={seatsActive.map((s) => s.name)} riichi={riichi} kiriage={!!rule.kiriage} hanMin={rule.hanMin} onConfirm={confirm} />}
+      {sheet && <Sheet sheet={sheet} setSheet={setSheet} n={n} dealer={dealer} honba={honba} pot={pot} mode={mode} names={seatsActive.map((s) => s.name)} riichi={riichi} kiriage={!!rule.kiriage} onConfirm={confirm} />}
       {setup && <Setup setup={setup} setSetup={setSetup} allPlayers={allPlayers} user={user} mode={mode} setMode={reset} onConfirm={startGameFromSetup} rule={rule} setRule={setRule} />}
       {gameOver && endInfo && <EndPanel endInfo={endInfo} names={seatsActive.map((s) => s.name)} handLog={handLog} user={user} saveMsg={saveMsg} rule={rule} onSave={finishGame} onClose={resetToStart} />}
     </div>
   );
 }
 
-function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, kiriage, hanMin, onConfirm }: {
+function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, kiriage, onConfirm }: {
   sheet: SheetState;
   setSheet: (s: SheetState | null) => void;
   n: number;
@@ -425,7 +397,6 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
   names: string[];
   riichi: Set<number>;
   kiriage: boolean;
-  hanMin: string;
   onConfirm: () => void;
 }) {
   const set = (patch: Partial<SheetState>) => setSheet({ ...sheet, ...patch });
@@ -463,10 +434,6 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
   const chip = (label: string, active: boolean, onClick: () => void, key?: string) => (
     <button key={key ?? label} className={`chip ${active ? 'on' : ''}`} onClick={onClick}>{label}</button>
   );
-
-  const minHan = hanMinOf(hanMin);
-  const hans = sheet.type === '荣和' ? sheet.ronWinners.map((w) => w.han) : sheet.type === '自摸' ? [sheet.han] : [];
-  const belowMin = hans.some((h) => h < minHan);
 
   return (
     <div className="sheet-mask" onClick={() => setSheet(null)}>
@@ -577,10 +544,9 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
                 return <div key={i}>{nm}：{total}{detail ? `(${detail})` : ''}</div>;
               })}
         </div>
-        {belowMin && <div className="error">低于{hanMin}，无法结算</div>}
         <div className="sh-foot">
           <button className="btn-cancel" onClick={() => setSheet(null)}>取消</button>
-          <button className="btn-ok" disabled={belowMin} onClick={onConfirm}>确认</button>
+          <button className="btn-ok" onClick={onConfirm}>确认</button>
         </div>
       </div>
     </div>
@@ -712,7 +678,17 @@ function Setup({ setup, setSetup, allPlayers, user, mode, setMode, onConfirm, ru
               <div className="form-row"><span className="fl">不听罚符</span><input type="number" value={rule.notenBappu} onChange={(e) => setRule({ ...rule, notenBappu: Number(e.target.value) })} /></div>
               <div className="form-row"><span className="fl">不满返点延局</span><button className={`tgl ${rule.extendBelowOka ? 'on' : ''}`} onClick={() => setRule({ ...rule, extendBelowOka: !rule.extendBelowOka })}>{rule.extendBelowOka ? '是' : '否'}</button></div>
               <div className="form-row"><span className="fl">番缚</span><select value={rule.hanMin} onChange={(e) => setRule({ ...rule, hanMin: e.target.value })}>{HAN_MIN_OPTIONS.map((o) => <option key={o}>{o}</option>)}</select></div>
-              <div className="form-row"><span className="fl">马点</span><select value={rule.uma} onChange={(e) => setRule({ ...rule, uma: e.target.value })}>{UMA_OPTIONS[mode].map((o) => <option key={o}>{o}</option>)}</select></div>
+              <div className="form-row"><span className="fl">马点</span>
+                <select value={rule.uma} onChange={(e) => setRule({ ...rule, uma: e.target.value })}>
+                  {UMA_OPTIONS[mode].map((o) => <option key={o} value={o}>{o}</option>)}
+                  <option value={CUSTOM_UMA}>自定义…</option>
+                </select>
+              </div>
+              {rule.uma === CUSTOM_UMA && (
+                <div className="field">
+                  <input value={rule.umaCustom ?? ''} onChange={(e) => setRule({ ...rule, umaCustom: e.target.value })} placeholder={`${mode} 个整数，逗号分隔，如 ${mode === 4 ? '30,10,-10,-30' : mode === 3 ? '30,0,-30' : '30,-30'}`} />
+                </div>
+              )}
               <div className="form-row"><span className="fl">切上满贯</span><button className={`tgl ${rule.kiriage ? 'on' : ''}`} onClick={() => setRule({ ...rule, kiriage: !rule.kiriage })}>{rule.kiriage ? '是' : '否'}</button></div>
               <div className="form-row"><span className="fl">击飞</span><button className={`tgl ${rule.hakoshita ? 'on' : ''}`} onClick={() => setRule({ ...rule, hakoshita: !rule.hakoshita })}>{rule.hakoshita ? '是' : '否'}</button></div>
               <div className="form-row"><span className="fl">终局第一无限连庄</span><button className={`tgl ${rule.unlimitedTopRenchan ? 'on' : ''}`} onClick={() => setRule({ ...rule, unlimitedTopRenchan: !rule.unlimitedTopRenchan })}>{rule.unlimitedTopRenchan ? '是' : '否'}</button></div>
@@ -742,7 +718,7 @@ function EndPanel({ endInfo, names, handLog, user, saveMsg, rule, onSave, onClos
   const order = endInfo.results.map((r, i) => ({ i, ...r })).sort((a, b) => a.rank - b.rank);
   const oka = Number(rule.oka);
   const startPoints = Number(rule.startPoints);
-  const uma = UMA_MAP[rule.uma] ?? [10, 5, -5, -10];
+  const uma = umaArray(rule);
   const topBonus = ((oka - startPoints) * endInfo.results.length) / 1000;
   return (
     <div className="sheet-mask">

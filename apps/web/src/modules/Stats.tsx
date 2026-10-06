@@ -88,14 +88,15 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
           }
           const modeLabel = ({ 4: '4人', 3: '3人', 2: '2人' } as Record<number, string>)[item.mode] ?? `${item.mode}人`;
           const lengthLabel = item.ruleSnapshot?.length ?? '';
-          const title = `${modeLabel}${lengthLabel}`;
           const finished = item.status === 'FINISHED';
+          const isQuick = finished && (item._count?.settlements ?? 0) === 0;
+          const title = isQuick ? modeLabel : `${modeLabel}${lengthLabel}`;
           const timeStr = finished && item.endedAt ? fmtTime(item.endedAt) : '进行中';
           const host = block === 'feed' ? `创建用户：${item.creator?.username ?? '—'} · ` : '';
           return (
             <div key={i} className="row" onClick={() => finished ? openGame(item.id) : onResume?.(item)}>
               <div className="row-body">
-                <div className="row-name">{title}</div>
+                <div className="row-name">{title}{isQuick && <span className="badge">录分</span>}</div>
                 <div className="row-sub">{host}{timeStr}</div>
                 {finished && (
                   <div className="score-line">
@@ -119,6 +120,7 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
 function Detail({ detail, back }: { detail: { type: 'game'; data: any } | { type: 'player'; playerId: string; mode: number }; back: () => void }) {
   if (detail.type === 'game') {
     const d = detail.data;
+    const isQuick = (d.settlements ?? []).length === 0;
     const namesBySeat = d.participants?.map((p: any) => p.player?.name ?? p.tempName) ?? [];
     const oka = d.ruleSnapshot?.oka ?? 30000;
     const uma: number[] = d.ruleSnapshot?.uma ?? [];
@@ -158,11 +160,15 @@ function Detail({ detail, back }: { detail: { type: 'game'; data: any } | { type
     }) ?? [];
     return (
       <div>
-        <div className="sub-head">牌局 · {d.mode}人 · {d.status === 'FINISHED' ? '已终局' : '进行中'}</div>
+        <div className="sub-head">牌局 · {d.mode}人 · {isQuick ? '录分' : (d.status === 'FINISHED' ? '已终局' : '进行中')}</div>
         <div className="section-title">终局顺位</div>
         <div className="list">{parts}</div>
-        <div className="section-title" style={{ marginTop: 14 }}>逐局结算</div>
-        <div className="list">{settle}</div>
+        {!isQuick && (
+          <>
+            <div className="section-title" style={{ marginTop: 14 }}>逐局结算</div>
+            <div className="list">{settle}</div>
+          </>
+        )}
         <button className="btn-primary" onClick={back}>返回</button>
       </div>
     );

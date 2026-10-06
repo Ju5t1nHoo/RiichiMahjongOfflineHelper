@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { prisma } from './db';
 import { authMiddleware, type Variables } from './auth';
-import { settleRon, settleTsumo, settleNoten, settleChombo, type RoundContext, type RonWinner } from '@riichi/rules';
+import { settleRon, settleTsumo, settleNoten, settleChombo, finalScores, type RoundContext, type RonWinner, type RuleSnapshot } from '@riichi/rules';
 
 export const games = new Hono<{ Variables: Variables }>();
 games.use('*', authMiddleware);
@@ -33,6 +33,68 @@ games.post('/', async (c) => {
   return c.json(game, 201);
 });
 
+// 牌局录分：直接录入终局素点，校验总分并计算得点/顺位后落库（FINISHED）
+games.post('/quick', async (c) => {
+  const user = c.get('user');
+  const { mode, ruleSnapshot, participants } = await c.req.json();
+  if (![2, 3, 4].includes(mode)) return c.json({ error: 'mode 必须是 2 / 3 / 4' }, 400);
+  const rule = ruleSnapshot as RuleSnapshot;
+  if (!rule || !Number.isInteger(rule.startPoints) || rule.startPoints % 100 !== 0) return c.json({ error: '基础分需为 100 的整数倍' }, 400);
+  if (!Number.isInteger(rule.oka) || rule.oka % 100 !== 0) return c.json({ error: '返点需为 100 的整数倍' }, 400);
+  if (!Array.isArray(rule.uma) || rule.uma.length !== mode || !rule.uma.every((v) => Number.isInteger(v))) return c.json({ error: `马点需为 ${mode} 个整数` }, 400);
+  if (!Array.isArray(participants) || participants.length !== mode) return c.json({ error: `参与人数需为 ${mode}` }, 400);
+
+  const seatMap = new Map<number, any>();
+  for (const p of participants) {
+    if (!Number.isInteger(p.seat) || p.seat < 0 || p.seat >= mode) return c.json({ error: '座位序号无效' }, 400);
+    if (seatMap.has(p.seat)) return c.json({ error: '座位重复' }, 400);
+    if (!p.playerId) return c.json({ error: '每个座位需选择雀士' }, 400);
+    if (!Number.isInteger(p.finalRawScore) || p.finalRawScore % 100 !== 0) return c.json({ error: '素点需为 100 的整数倍' }, 400);
+    seatMap.set(p.seat, p);
+  }
+
+  const rawScores: number[] = [];
+  const playerIds: string[] = [];
+  for (let i = 0; i < mode; i++) {
+    rawScores.push(seatMap.get(i).finalRawScore);
+    playerIds.push(seatMap.get(i).playerId);
+  }
+  if (new Set(playerIds).size !== mode) return c.json({ error: '同一雀士不能重复占多个座位' }, 400);
+
+  const total = rawScores.reduce((a, b) => a + b, 0);
+  const expect = rule.startPoints * mode;
+  if (total !== expect) {
+    const diff = total - expect;
+    return c.json({ error: `总分应为 ${expect}，当前 ${total}，${diff > 0 ? `多 ${diff}` : `少 ${-diff}`}` }, 400);
+  }
+
+  const found = await prisma.player.findMany({ where: { id: { in: playerIds } } });
+  if (found.length !== mode) return c.json({ error: '存在无效的雀士' }, 400);
+
+  const results = finalScores(rawScores, rule, 0);
+
+  const game = await prisma.game.create({
+    data: {
+      creatorUserId: user.id,
+      mode,
+      ruleSnapshot,
+      status: 'FINISHED',
+      endedAt: new Date(),
+      participants: {
+        create: rawScores.map((_, i) => ({
+          seat: i,
+          playerId: playerIds[i],
+          finalRawScore: rawScores[i],
+          finalScore: results[i].score,
+          rank: results[i].rank,
+        })),
+      },
+    },
+    include: { participants: { include: { player: true } } },
+  });
+  return c.json(game, 201);
+});
+
 // 我的创建（含进行中/已终局）
 games.get('/mine', async (c) => {
   const user = c.get('user');
@@ -40,7 +102,7 @@ games.get('/mine', async (c) => {
   const list = await prisma.game.findMany({
     where: { creatorUserId: user.id, ...(mode ? { mode: Number(mode) } : {}) },
     orderBy: { createdAt: 'desc' },
-    include: { participants: { include: { player: true } } },
+    include: { participants: { include: { player: true } }, _count: { select: { settlements: true } } },
   });
   return c.json(list);
 });
@@ -54,6 +116,7 @@ games.get('/feed', async (c) => {
     include: {
       participants: { include: { player: true } },
       creator: { select: { username: true } },
+      _count: { select: { settlements: true } },
     },
   });
   return c.json(list);

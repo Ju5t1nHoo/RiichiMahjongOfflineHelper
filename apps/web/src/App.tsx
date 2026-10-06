@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { auth, type AuthUser } from './api';
 import Score from './modules/Score';
+import QuickScore from './modules/QuickScore';
 import Stats from './modules/Stats';
 import Profile from './modules/Profile';
 
-type Tab = 'score' | 'stats' | 'profile';
+type Tab = 'score' | 'quick' | 'stats' | 'profile';
 
 const TABS: { key: Tab; label: string; icon: string; needsAuth: boolean }[] = [
   { key: 'score', label: '计分风盘', icon: '🀄', needsAuth: false },
+  { key: 'quick', label: '牌局录分', icon: '📝', needsAuth: true },
   { key: 'stats', label: '数据统计', icon: '📊', needsAuth: true },
   { key: 'profile', label: '个人中心', icon: '👤', needsAuth: true },
 ];
@@ -31,6 +33,7 @@ export default function App() {
     <div className="app">
       <main className="content">
         {tab === 'score' && <Score user={user} resume={resume} onResumeDone={() => setResume(null)} />}
+        {tab === 'quick' && <QuickScore />}
         {tab === 'stats' && <Stats onResume={(g) => { setResume(g); setTab('score'); }} />}
         {tab === 'profile' && <Profile user={user!} onLogout={() => setUser(null)} />}
       </main>
@@ -55,6 +58,10 @@ function Auth({ onAuthed }: { onAuthed: (u: AuthUser) => void }) {
 
   const submit = async () => {
     setError('');
+    if (mode === 'register' && password !== confirm) {
+      setError('两次密码不一致');
+      return;
+    }
     try {
       const fn = mode === 'login' ? auth.login : auth.register;
       const u = await fn(username, password);

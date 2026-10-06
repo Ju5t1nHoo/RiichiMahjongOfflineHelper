@@ -1,20 +1,11 @@
 import { useEffect, useState } from 'react';
 import { auth, players, feedback, me, type AuthUser } from '../api';
+import { RULE_FIELDS, UMA_OPTIONS } from '../ruleConfig';
+import type { Mode } from '@riichi/rules';
 
 type View = 'hub' | 'signature' | 'players' | 'rules' | 'password' | 'feedback';
 
-const RULE_DEFAULTS: Record<number, Record<string, any>> = {
-  4: { length: '半庄战', startPoints: 25000, oka: 30000, honbaStick: 300, notenBappu: 3000, extendBelowOka: true, hanMin: '一番缚', kiriage: false, hakoshita: true, unlimitedTopRenchan: false, uma: '10-5', keepDecimal: true },
-  3: { length: '半庄战', startPoints: 25000, oka: 30000, honbaStick: 200, notenBappu: 3000, extendBelowOka: true, hanMin: '一番缚', kiriage: false, hakoshita: true, unlimitedTopRenchan: false, uma: '+10/0/-10', keepDecimal: true },
-  2: { length: '半庄战', startPoints: 50000, oka: 50000, honbaStick: 300, notenBappu: 3000, extendBelowOka: true, hanMin: '一番缚', kiriage: false, hakoshita: true, unlimitedTopRenchan: false, uma: '+10/-10', keepDecimal: true },
-};
-
 const HAN_MIN_OPTIONS = ['一番缚', '二番缚', '三番缚', '四番缚', '五番缚'];
-const UMA_OPTIONS: Record<number, string[]> = {
-  4: ['10-5', '10-0', '5-10', '20-10', '30-10'],
-  3: ['+10/0/-10', '+20/0/-20', '+10/+5/-15'],
-  2: ['+10/-10', '+20/-20'],
-};
 
 export default function Profile({ user, onLogout }: { user: AuthUser; onLogout: () => void }) {
   const [view, setView] = useState<View>('hub');
@@ -108,12 +99,12 @@ function Players({ user, back }: { user: AuthUser; back: () => void }) {
 }
 
 function Rules({ back }: { back: () => void }) {
-  const [mode, setMode] = useState(4);
-  const [rules, setRules] = useState<Record<string, Record<string, any>>>({ 4: { ...RULE_DEFAULTS[4] }, 3: { ...RULE_DEFAULTS[3] }, 2: { ...RULE_DEFAULTS[2] } });
+  const [mode, setMode] = useState<Mode>(4);
+  const [rules, setRules] = useState<Record<string, Record<string, any>>>({ 4: { ...RULE_FIELDS[4] }, 3: { ...RULE_FIELDS[3] }, 2: { ...RULE_FIELDS[2] } });
   const [err, setErr] = useState('');
 
   useEffect(() => {
-    me.rules().then((r) => setRules((cur) => ({ 4: { ...RULE_DEFAULTS[4], ...(r[4] as any) }, 3: { ...RULE_DEFAULTS[3], ...(r[3] as any) }, 2: { ...RULE_DEFAULTS[2], ...(r[2] as any) } }))).catch(() => {});
+    me.rules().then((r) => setRules((cur) => ({ 4: { ...RULE_FIELDS[4], ...(r[4] as any) }, 3: { ...RULE_FIELDS[3], ...(r[3] as any) }, 2: { ...RULE_FIELDS[2], ...(r[2] as any) } }))).catch(() => {});
   }, []);
 
   const set = (k: string, v: any) => setRules((r) => ({ ...r, [mode]: { ...r[mode], [k]: v } }));
@@ -134,7 +125,7 @@ function Rules({ back }: { back: () => void }) {
   return (
     <div>
       <div className="segment">
-        {[4, 3, 2].map((m) => <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>)}
+        {([4, 3, 2] as Mode[]).map((m) => <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>)}
       </div>
       <div className="form">
         {row('局数', 'length', sel('length', ['东风战', '半庄战', '一庄战', '无限庄战']))}

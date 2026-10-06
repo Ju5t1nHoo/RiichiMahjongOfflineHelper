@@ -44,6 +44,8 @@ export const games = {
     request<any>(`/api/games/${id}/settlements`, { method: 'POST', body: JSON.stringify(data) }),
   finish: (id: string, data: { status: string; participants: { id: string; finalRawScore: number; finalScore: number; rank: number }[] }) =>
     request<any>(`/api/games/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  quick: (data: { mode: number; ruleSnapshot: unknown; participants: { seat: number; playerId: string; finalRawScore: number }[] }) =>
+    request<any>('/api/games/quick', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export const me = {
