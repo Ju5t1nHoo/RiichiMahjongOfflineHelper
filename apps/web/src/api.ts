@@ -63,3 +63,10 @@ export const stats = {
 export const feedback = {
   submit: (content: string, contact?: string) => request('/api/feedback', { method: 'POST', body: JSON.stringify({ content, contact }) }),
 };
+
+export const yakuman = {
+  create: (data: { playerId: string; yakumanType: string; yakumanTypeCustom?: string; occurredAt: string; photos: string[] }) =>
+    request('/api/yakuman', { method: 'POST', body: JSON.stringify(data) }),
+  list: (skip = 0, take = 20) => request<any[]>(`/api/yakuman?skip=${skip}&take=${take}`),
+  remove: (id: string) => request(`/api/yakuman/${id}`, { method: 'DELETE' }),
+};

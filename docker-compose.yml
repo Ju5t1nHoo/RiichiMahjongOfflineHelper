@@ -21,6 +21,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-riichi}:${POSTGRES_PASSWORD:-riichi}@db:5432/${POSTGRES_DB:-riichi}
       SESSION_SECRET: ${SESSION_SECRET:-change-me}
       PORT: 3000
+      PHOTO_DIR: /data/yakuman
+    volumes:
+      - yakuman_data:/data
     depends_on:
       db:
         condition: service_healthy
@@ -36,3 +39,4 @@ services:
 
 volumes:
   db_data:
+  yakuman_data:

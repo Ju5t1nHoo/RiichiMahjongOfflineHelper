@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { games, stats } from '../api';
+import YakumanWall from './YakumanWall';
 
 const fmtTime = (s: string) => {
   const d = new Date(s);
@@ -7,11 +8,12 @@ const fmtTime = (s: string) => {
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-type Block = 'mine' | 'feed' | 'rank';
+type Block = 'mine' | 'feed' | 'rank' | 'yakuman';
 const BLOCKS: { key: Block; label: string }[] = [
   { key: 'mine', label: '我的创建' },
   { key: 'feed', label: '数据广场' },
   { key: 'rank', label: '雀士数据' },
+  { key: 'yakuman', label: '役满墙' },
 ];
 
 export default function Stats({ onResume }: { onResume?: (game: any) => void }) {
@@ -23,6 +25,7 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
   const [detail, setDetail] = useState<{ type: 'game'; data: any } | { type: 'player'; playerId: string; mode: number } | null>(null);
 
   useEffect(() => {
+    if (block === 'yakuman') return;
     let cancel = false;
     setData([]);
     setError('');
@@ -53,11 +56,13 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
             <button key={b.key} className={`tab2 ${block === b.key ? 'on' : ''}`} onClick={() => setBlock(b.key)}>{b.label}</button>
           ))}
         </div>
-        <div className="segment">
-          {[4, 3, 2].map((m) => (
-            <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>
-          ))}
-        </div>
+        {block !== 'yakuman' && (
+          <div className="segment">
+            {[4, 3, 2].map((m) => (
+              <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>
+            ))}
+          </div>
+        )}
 
         {block === 'rank' && (
           <div className="sort-row">
@@ -68,6 +73,10 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
         )}
       </div>
 
+      {block === 'yakuman' ? (
+        <YakumanWall />
+      ) : (
+        <>
       {error && <div className="error">{error}</div>}
       {!error && data.length === 0 && <div className="placeholder">暂无数据</div>}
       <div className="list">
@@ -113,6 +122,8 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
           );
         })}
       </div>
+        </>
+      )}
     </div>
   );
 }

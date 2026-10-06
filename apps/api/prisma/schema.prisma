@@ -18,6 +18,7 @@ model User {
   games        Game[]
   sessions     Session[]
   feedbacks    Feedback[]
+  yakumans     Yakuman[]
 }
 
 model Player {
@@ -27,6 +28,7 @@ model Player {
   boundUserId  String?           @map("bound_user_id")
   boundUser    User?             @relation(fields: [boundUserId], references: [id])
   participants GameParticipant[]
+  yakumans     Yakuman[]
 
   @@index([name])
 }
@@ -67,6 +69,21 @@ model GameParticipant {
   rank          Int?
 
   @@unique([gameId, seat])
+}
+
+model Yakuman {
+  id                String   @id @default(cuid())
+  playerId          String   @map("player_id")
+  player            Player   @relation(fields: [playerId], references: [id])
+  yakumanType       String   @map("yakuman_type") // 役满役种（固定清单或「其它」）
+  yakumanTypeCustom String?  @map("yakuman_type_custom") // 「其它」时的自由文本
+  occurredAt        DateTime @map("occurred_at") // 役满发生时刻
+  photos            String[] @map("photos") // 照片文件名（1~3 张）
+  creatorUserId     String   @map("creator_user_id")
+  creator           User     @relation(fields: [creatorUserId], references: [id])
+  createdAt         DateTime @default(now())
+
+  @@index([occurredAt])
 }
 
 model Settlement {

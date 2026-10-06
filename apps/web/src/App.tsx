@@ -33,7 +33,7 @@ export default function App() {
     <div className="app">
       <main className="content">
         {tab === 'score' && <Score user={user} resume={resume} onResumeDone={() => setResume(null)} />}
-        {tab === 'quick' && <QuickScore />}
+        {tab === 'quick' && <QuickScore user={user!} />}
         {tab === 'stats' && <Stats onResume={(g) => { setResume(g); setTab('score'); }} />}
         {tab === 'profile' && <Profile user={user!} onLogout={() => setUser(null)} />}
       </main>

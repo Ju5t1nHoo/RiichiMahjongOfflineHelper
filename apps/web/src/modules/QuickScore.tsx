@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { finalScores, type Mode, type RuleSnapshot } from '@riichi/rules';
-import { games, players } from '../api';
+import { games, players, type AuthUser } from '../api';
 import { UMA_OPTIONS, RULE_FIELDS, CUSTOM_UMA, umaArray } from '../ruleConfig';
 
 const MODE_LABEL: Record<Mode, string> = { 4: '四人', 3: '三人', 2: '二人' };
 const START_PRESETS = [25000, 27000, 30000, 50000];
 const OKA_PRESETS = [30000, 25000, 50000];
 
-export default function QuickScore() {
+export default function QuickScore({ user }: { user: AuthUser }) {
   const [mode, setMode] = useState<Mode>(4);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [seatPlayers, setSeatPlayers] = useState<(string | null)[]>(Array(4).fill(null));
@@ -18,6 +18,8 @@ export default function QuickScore() {
   const [customUma, setCustomUma] = useState('');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState<any | null>(null);
+  const [pickerSeat, setPickerSeat] = useState<number | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     players.list().then(setAllPlayers).catch(() => {});
@@ -73,6 +75,11 @@ export default function QuickScore() {
 
   const nameOf = (id: string | null) => allPlayers.find((p) => p.id === id)?.name ?? '';
   const previewOrder = results ? results.map((r, i) => ({ i, ...r })).sort((a, b) => a.rank - b.rank) : [];
+  const myPlayers = allPlayers.filter((p) => p.boundUserId === user.id);
+  const q = search.trim().toLowerCase();
+  const searched = q ? allPlayers.filter((p) => (p.name || '').toLowerCase().includes(q)) : [];
+  const taken = (id: string) => seatPlayers.some((pid, k) => k !== pickerSeat && pid === id);
+  const pick = (p: any) => { if (pickerSeat != null) setSeatPlayers(seatPlayers.map((pid, k) => (k === pickerSeat ? p.id : pid))); setPickerSeat(null); };
 
   return (
     <div className="quick">
@@ -88,16 +95,13 @@ export default function QuickScore() {
         {Array.from({ length: mode }).map((_, i) => (
           <div key={i} className="row">
             <span className="rank-num">{i + 1}</span>
-            <select
+            <button
               className="grow"
-              value={seatPlayers[i] ?? ''}
-              onChange={(e) => setSeatPlayers(seatPlayers.map((p, k) => (k === i ? (e.target.value || null) : p)))}
+              style={{ textAlign: 'left', cursor: 'pointer' }}
+              onClick={() => { setSearch(''); setPickerSeat(i); }}
             >
-              <option value="">选择雀士</option>
-              {allPlayers.map((p) => (
-                <option key={p.id} value={p.id} disabled={seatPlayers.some((pid, k) => k !== i && pid === p.id)}>{p.name}</option>
-              ))}
-            </select>
+              {nameOf(seatPlayers[i]) || '选择雀士'}
+            </button>
             <input
               type="number"
               step={100}
@@ -190,6 +194,43 @@ export default function QuickScore() {
         <button className="btn-primary" disabled={!valid} onClick={save}>保存并计入统计</button>
       )}
       {error && <div className="error">{error}</div>}
+
+      {pickerSeat != null && (
+        <div className="sheet-mask" onClick={() => setPickerSeat(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="sh-head">
+              <span className="sh-title">座位 {pickerSeat + 1} · 选择雀士</span>
+              <button className="sh-close" onClick={() => setPickerSeat(null)}>✕</button>
+            </div>
+            {myPlayers.length > 0 && (
+              <>
+                <div className="sec-label">我的雀士</div>
+                <div className="list">
+                  {myPlayers.map((p) => (
+                    <div key={p.id} className={`row ${taken(p.id) ? 'disabled' : ''}`} onClick={() => !taken(p.id) && pick(p)}>
+                      <span className="avatar">{p.name[0]}</span>
+                      <div className="row-body"><div className="row-name">{p.name}</div>{taken(p.id) && <div className="row-sub">已选</div>}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="sec-label">搜索雀士</div>
+            <div className="field"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="输入名称搜索全局雀士" /></div>
+            {q && (
+              <div className="list">
+                {searched.map((p) => (
+                  <div key={p.id} className={`row ${taken(p.id) ? 'disabled' : ''}`} onClick={() => !taken(p.id) && pick(p)}>
+                    <span className="avatar">{p.name[0]}</span>
+                    <div className="row-body"><div className="row-name">{p.name}</div>{taken(p.id) && <div className="row-sub">已选</div>}</div>
+                  </div>
+                ))}
+                {searched.length === 0 && <div className="placeholder">无匹配雀士</div>}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { players } from './players';
 import { games } from './games';
 import { stats } from './stats';
 import { feedback } from './feedback';
+import { yakuman } from './yakuman';
 
 const app = new Hono<{ Variables: Variables }>();
 
@@ -20,6 +21,7 @@ app.route('/api/players', players);
 app.route('/api/games', games);
 app.route('/api/stats', stats);
 app.route('/api/feedback', feedback);
+app.route('/api/yakuman', yakuman);
 
 serve({ fetch: app.fetch, port: Number(process.env.PORT) || 3000 }, (info) => {
   console.log(`API listening on port ${info.port}`);
