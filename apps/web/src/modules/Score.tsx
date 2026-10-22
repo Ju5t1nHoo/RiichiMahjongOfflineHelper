@@ -57,6 +57,10 @@ function RollingNumber({ value }: { value: number }) {
   return <>{display}</>;
 }
 
+function Diff({ value }: { value: number }) {
+  return <span className="diff">{value > 0 ? `+${value}` : value}</span>;
+}
+
 const DICE_DOTS: Record<number, [number, number][]> = {
   1: [[0.5, 0.5]],
   2: [[0.25, 0.25], [0.75, 0.75]],
@@ -335,6 +339,10 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
               {SEATS[mode].map(([pos, angle], i) => {
                 const windOf = WIND[mode][(i - dealer + n) % n];
                 const isDealer = i === dealer;
+                const opp = n % 2 === 0 ? (i + n / 2) % n : -1; // 对家（四人/二人）
+                const kamicha = n >= 3 ? (i - 1 + n) % n : -1; // 上家（左）
+                const shimocha = n >= 3 ? (i + 1) % n : -1; // 下家（右）
+                const d = (j: number) => seats[i].points - seats[j].points;
                 return (
                   <div key={pos} className="seat" style={{ gridArea: pos }}>
                     <div className={`card ${isDealer ? 'dealer' : ''}`} style={{ transform: `rotate(${angle}deg)`, cursor: 'pointer' }} onClick={() => toggleRiichi(i)}>
@@ -347,7 +355,14 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
                         <span className="avatar">{seats[i].name[0]}</span>
                         <span className="name">{seats[i].name}</span>
                       </div>
-                      <div className="points"><RollingNumber value={seats[i].points} /></div>
+                      <div className="points-wrap">
+                        {opp >= 0 && <Diff value={d(opp)} />}
+                        <div className="points-row">
+                          {kamicha >= 0 && <Diff value={d(kamicha)} />}
+                          <div className="points"><RollingNumber value={seats[i].points} /></div>
+                          {shimocha >= 0 && <Diff value={d(shimocha)} />}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );
