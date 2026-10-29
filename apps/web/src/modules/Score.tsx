@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  HAN_NUMS,
   FU_OPTS,
-  needFu,
+  baseOf,
+  tierName,
+  rup,
   settleRon,
   settleTsumo,
   settleNoten,
@@ -24,8 +25,9 @@ const SEATS: Record<Mode, [string, number][]> = {
   3: [['top', 180], ['left', 90], ['right', -90]],
   2: [['top', 180], ['bottom', 0]],
 };
-const WIND: Record<Mode, string[]> = { 4: ['东', '南', '西', '北'], 3: ['东', '南', '西'], 2: ['东', '西'] };
+const WIND: Record<Mode, string[]> = { 4: ['東', '南', '西', '北'], 3: ['東', '南', '西'], 2: ['東', '西'] };
 const POS_LABEL: Record<string, string> = { top: '上', left: '左', bottom: '下', right: '右' };
+const MODE_LABEL: Record<Mode, string> = { 4: '四人', 3: '三人', 2: '二人' };
 const NAMES = ['张三', '李四', '王五', '赵六'];
 const AMOUNTS = [8000, 12000, 16000, 24000, 32000];
 
@@ -34,7 +36,7 @@ const HAN_MIN_OPTIONS = ['一番缚', '二番缚', '三番缚', '四番缚', '�
 
 type SheetType = '荣和' | '自摸' | '流局' | '罚符';
 
-function RollingNumber({ value }: { value: number }) {
+function useRolling(value: number) {
   const [display, setDisplay] = useState(value);
   const prevRef = useRef(value);
   useEffect(() => {
@@ -54,11 +56,17 @@ function RollingNumber({ value }: { value: number }) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [value]);
+  return display;
+}
+
+function RollingNumber({ value }: { value: number }) {
+  const display = useRolling(value);
   return <>{display}</>;
 }
 
 function Diff({ value }: { value: number }) {
-  return <span className="diff">{value > 0 ? `+${value}` : value}</span>;
+  const display = useRolling(value);
+  return <span className="diff">{display > 0 ? `+${display}` : display}</span>;
 }
 
 const DICE_DOTS: Record<number, [number, number][]> = {
@@ -82,6 +90,7 @@ function Die({ value, rolling }: { value: number; rolling: boolean }) {
 interface SeatState { name: string; points: number; }
 interface SheetState {
   type: SheetType;
+  angle: number;
   han: number;
   fu: number;
   ronWinners: RonWinner[];
@@ -94,7 +103,7 @@ interface SheetState {
   dealerTenpai: boolean;
 }
 
-export default function Score({ user, resume, onResumeDone }: { user: AuthUser | null; resume?: any | null; onResumeDone?: () => void }) {
+export default function Score({ user, resume, onResumeDone, onShowNav, onGameStateChange }: { user: AuthUser | null; resume?: any | null; onResumeDone?: () => void; onShowNav: () => void; onGameStateChange: (started: boolean) => void }) {
   const [mode, setMode] = useState<Mode>(4);
   const [seats, setSeats] = useState<SeatState[]>(() => NAMES.slice(0, 4).map((name) => ({ name, points: 25000 })));
   const [dealer, setDealer] = useState(0);
@@ -109,6 +118,7 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
   const [seq, setSeq] = useState(1);
   const [saveMsg, setSaveMsg] = useState('');
   const [gameOver, setGameOver] = useState(false);
+  const [endConfirm, setEndConfirm] = useState(false);
   const [setup, setSetup] = useState<{ names: string[]; selections: (string | null)[]; startPoints: number[] } | null>(null);
   const [allPlayers, setAllPlayers] = useState<any[]>([]);
   const [rule, setRule] = useState<Record<string, any>>(() => ({ ...RULE_FIELDS[4] }));
@@ -143,6 +153,8 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
     setSaveMsg('已恢复进行中的牌局');
     onResumeDone?.();
   }, [resume]);
+
+  useEffect(() => { onGameStateChange(started); }, [started]);
 
   const n = mode;
   const seatsActive = seats.slice(0, n);
@@ -251,6 +263,14 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
     } catch (e) { setSaveMsg((e as Error).message); }
   };
 
+  const requestEnd = () => setEndConfirm(true);
+
+  const confirmEnd = () => {
+    setEndConfirm(false);
+    setEndInfo(computeEnd());
+    setGameOver(true);
+  };
+
   const confirm = async () => {
     if (!sheet) return;
     const kiriage = !!rule.kiriage;
@@ -321,11 +341,28 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
     setSheet(null);
   };
 
-  const openSheet = (type: SheetType) =>
-    setSheet({ type, han: 1, fu: 30, ronWinners: [], discarder: null, winner: null, sub: '不听罚符', tenpai: seatsActive.map(() => false), chombo: null, amount: 8000, dealerTenpai: true });
+  const openSheet = (type: SheetType, seat?: number) =>
+    setSheet({
+      type, angle: seat != null ? SEATS[mode][seat][1] : 0, han: 1, fu: 30,
+      ronWinners: type === '荣和' && seat != null ? [{ seat, han: 1, fu: 30 }] : [],
+      discarder: null,
+      winner: type === '自摸' && seat != null ? seat : null,
+      chombo: type === '罚符' && seat != null ? seat : null,
+      sub: '不听罚符', tenpai: seatsActive.map(() => false), amount: 8000, dealerTenpai: true,
+    });
 
   return (
     <div className="score">
+      {started && (
+        <header className="score-top">
+          <button className="back" onClick={onShowNav} aria-label="返回">←</button>
+          <div className="top-mode">{MODE_LABEL[mode]} · {rule.length}</div>
+          <div className="top-right">
+            <button className="end-btn" onClick={requestEnd}>终局</button>
+          </div>
+        </header>
+      )}
+
       {!started ? (
         <div className="start-screen">
           <div className="start-title">立直麻将计分</div>
@@ -333,70 +370,171 @@ export default function Score({ user, resume, onResumeDone }: { user: AuthUser |
           {saveMsg && <div className="save-msg">{saveMsg}</div>}
         </div>
       ) : (
-        <>
-          <div className="table-area">
-            <div className="table">
-              {SEATS[mode].map(([pos, angle], i) => {
-                const windOf = WIND[mode][(i - dealer + n) % n];
-                const isDealer = i === dealer;
-                const opp = n % 2 === 0 ? (i + n / 2) % n : -1; // 对家（四人/二人）
-                const kamicha = n >= 3 ? (i - 1 + n) % n : -1; // 上家（左）
-                const shimocha = n >= 3 ? (i + 1) % n : -1; // 下家（右）
-                const d = (j: number) => seats[i].points - seats[j].points;
-                return (
-                  <div key={pos} className="seat" style={{ gridArea: pos }}>
-                    <div className={`card ${isDealer ? 'dealer' : ''}`} style={{ transform: `rotate(${angle}deg)`, cursor: 'pointer' }} onClick={() => toggleRiichi(i)}>
-                      {riichi.has(i) && <div className="riichi-stick" />}
-                      <div className="badges">
-                        <span className="badge wind">{windOf}</span>
-                        {isDealer && <span className="badge dealer">庄</span>}
-                      </div>
-                      <div className="name-row">
-                        <span className="avatar">{seats[i].name[0]}</span>
-                        <span className="name">{seats[i].name}</span>
-                      </div>
-                      <div className="points-wrap">
-                        {opp >= 0 && <Diff value={d(opp)} />}
-                        <div className="points-row">
-                          {kamicha >= 0 && <Diff value={d(kamicha)} />}
-                          <div className="points"><RollingNumber value={seats[i].points} /></div>
-                          {shimocha >= 0 && <Diff value={d(shimocha)} />}
-                        </div>
+        <div className="felt">
+          {SEATS[mode].map(([pos, angle], i) => {
+            const windOf = WIND[mode][(i - dealer + n) % n];
+            const isDealer = i === dealer;
+            const opp = n % 2 === 0 ? (i + n / 2) % n : -1; // 对家（四人/二人）
+            const kamicha = n >= 3 ? (i - 1 + n) % n : -1; // 上家（左）
+            const shimocha = n >= 3 ? (i + 1) % n : -1; // 下家（右）
+            const d = (j: number) => seats[i].points - seats[j].points;
+            return (
+              <div key={pos} className={`band band-${pos}`}>
+                <div className={`bar ${isDealer ? 'dealer' : ''} ${riichi.has(i) ? 'riichi' : ''}`} style={{ transform: `rotate(${angle}deg)` }}>
+                  <div className="bar-head">
+                    <span className="badge wind">{windOf}</span>
+                    <div className="name-row">
+                      <span className="avatar">{seats[i].name[0]}</span>
+                      <span className="name">{seats[i].name}</span>
+                    </div>
+                  </div>
+                  <div className="bar-score" onClick={() => toggleRiichi(i)}>
+                    <div className="points-wrap">
+                      {opp >= 0 && <Diff value={d(opp)} />}
+                      <div className="points-row">
+                        {kamicha >= 0 && <Diff value={d(kamicha)} />}
+                        <div className="points"><RollingNumber value={seats[i].points} /></div>
+                        {shimocha >= 0 && <Diff value={d(shimocha)} />}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-              <div className="center" style={{ gridArea: 'center' }}>
-                <div className="meta-line">{({ 4: '四人', 3: '三人', 2: '二人' })[mode]} · {rule.length}</div>
-                <div className="round">{WIND[mode][wind % WIND[mode].length]}{hand}局</div>
-                <div className="sub">{honba}本场 · 供托 {pot}</div>
-                <div className="dice-row" onClick={rollDice}>
-                  <Die value={dice.a} rolling={rolling} />
-                  <Die value={dice.b} rolling={rolling} />
+                  <div className="bar-actions">
+                    <button className="act" onClick={() => openSheet('荣和', i)}>荣和</button>
+                    <button className="act" onClick={() => openSheet('自摸', i)}>自摸</button>
+                    <button className="act" onClick={() => openSheet('罚符', i)}>罚符</button>
+                  </div>
                 </div>
               </div>
+            );
+          })}
+
+          <div className="center-block">
+            <div className="round">{WIND[mode][wind % WIND[mode].length]}{hand}局</div>
+            <div className="sub">{honba}本场·供托{pot}</div>
+            <div className="dice-row" onClick={rollDice}>
+              <Die value={dice.a} rolling={rolling} />
+              <Die value={dice.b} rolling={rolling} />
             </div>
+            <button className="draw-btn" onClick={() => openSheet('流局')}>流局</button>
           </div>
-
-          <footer className="settle-bar">
-            {(['荣和', '自摸', '流局', '罚符'] as SheetType[]).map((t) => (
-              <button key={t} className="settle-opt" onClick={() => openSheet(t)}>{t}</button>
-            ))}
-          </footer>
-
-          {game && (
-            <div className="save-bar">
-              <button className="btn-primary" onClick={finishGame}>终局并保存</button>
-              {saveMsg && <div className="save-msg">{saveMsg}</div>}
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {sheet && <Sheet sheet={sheet} setSheet={setSheet} n={n} dealer={dealer} honba={honba} pot={pot} mode={mode} names={seatsActive.map((s) => s.name)} riichi={riichi} kiriage={!!rule.kiriage} onConfirm={confirm} />}
       {setup && <Setup setup={setup} setSetup={setSetup} allPlayers={allPlayers} user={user} mode={mode} setMode={reset} onConfirm={startGameFromSetup} rule={rule} setRule={setRule} />}
       {gameOver && endInfo && <EndPanel endInfo={endInfo} names={seatsActive.map((s) => s.name)} handLog={handLog} user={user} saveMsg={saveMsg} rule={rule} onSave={finishGame} onClose={resetToStart} />}
+      {endConfirm && (
+        <div className="sheet-mask" onClick={() => setEndConfirm(false)}>
+          <div className="sheet end-confirm" onClick={(e) => e.stopPropagation()}>
+            <div className="sh-head"><span className="sh-title">终局确认</span></div>
+            <div className="end-confirm-text">确认结束本局并计算顺位？</div>
+            <div className="sh-foot">
+              <button className="btn-cancel" onClick={() => setEndConfirm(false)}>取消</button>
+              <button className="btn-ok" onClick={confirmEnd}>确认</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+type HanFuType = '荣和' | '自摸';
+
+function hanFuScore(han: number, fu: number, isDealer: boolean, type: HanFuType, mode: Mode, kiriage: boolean): string {
+  const base = baseOf(han, fu, kiriage);
+  if (type === '荣和' || mode === 2) {
+    const mult = isDealer ? 6 : 4;
+    return String(rup(base * mult));
+  }
+  if (isDealer) return `${rup(base * 2)} all`;
+  return `${rup(base)},${rup(base * 2)}`;
+}
+
+function hanFuValid(han: number, fu: number, type: HanFuType): boolean {
+  if (fu === 20) return type === '自摸' && han >= 2;
+  if (fu === 25) return han >= 2;
+  return true;
+}
+
+function hanFuLabel(han: number, fu: number, kiriage: boolean): string {
+  if (han <= 4) {
+    if (baseOf(han, fu, kiriage) === 2000) return `${han}番 满贯`;
+    return `${han}番${fu}符`;
+  }
+  return `${han}番 ${tierName(han)}`;
+}
+
+interface HfCell {
+  kind: 'cell' | 'mangan' | 'invalid';
+  han: number;
+  fu: number;
+  fuLabel: string;
+  score: string;
+}
+
+function cellsFor(han: number, type: HanFuType, isDealer: boolean, mode: Mode, kiriage: boolean): HfCell[] {
+  const fus = type === '荣和' ? FU_OPTS.filter((f) => f !== 20) : [...FU_OPTS];
+  const cells: HfCell[] = [];
+  const mangan: number[] = [];
+  for (const fu of fus) {
+    if (!hanFuValid(han, fu, type)) {
+      cells.push({ kind: 'invalid', han, fu, fuLabel: `${fu}符`, score: '-' });
+    } else if (baseOf(han, fu, kiriage) === 2000) {
+      mangan.push(fu);
+    } else {
+      cells.push({ kind: 'cell', han, fu, fuLabel: `${fu}符`, score: hanFuScore(han, fu, isDealer, type, mode, kiriage) });
+    }
+  }
+  if (mangan.length > 0) {
+    cells.push({ kind: 'mangan', han, fu: mangan[0], fuLabel: '满贯', score: hanFuScore(han, mangan[0], isDealer, type, mode, kiriage) });
+  }
+  return cells;
+}
+
+function HanFuTable({ type, isDealer, mode, kiriage, angle, onSelect, onClose }: {
+  type: HanFuType;
+  isDealer: boolean;
+  mode: Mode;
+  kiriage: boolean;
+  angle: number;
+  onSelect: (han: number, fu: number) => void;
+  onClose: () => void;
+}) {
+  const tiers = [
+    { han: 5, label: '5番', name: '满贯' },
+    { han: 6, label: '6~7番', name: '跳满' },
+    { han: 8, label: '8~10番', name: '倍满' },
+    { han: 11, label: '11~12番', name: '三倍满' },
+    { han: 13, label: '13番', name: '役满' },
+    { han: 26, label: '26番', name: '双倍役满' },
+  ];
+  return (
+    <div className="hf-mask" onClick={onClose}>
+      <div className={`hf-table ${angle === 90 || angle === -90 ? 'rot90' : ''}`} style={{ transform: `rotate(${angle}deg)` }} onClick={(e) => e.stopPropagation()}>
+        <div className="hf-title">番符得点 · {isDealer ? '亲家' : '子家'} · {type}</div>
+        <div className="hf-grid">
+          {[1, 2, 3, 4].map((han) => (
+            <div key={han} className="hf-col">
+              <div className="hf-col-title">{han}番</div>
+              {cellsFor(han, type, isDealer, mode, kiriage).map((c, i) => (
+                <button key={i} className={`hf-cell ${c.kind}`} disabled={c.kind === 'invalid'} onClick={() => onSelect(c.han, c.fu)}>
+                  <span className="hf-fu">{c.fuLabel}</span>
+                  <span className="hf-score">{c.score}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="hf-tiers">
+          {tiers.map((t) => (
+            <button key={t.han} className="hf-tier" onClick={() => onSelect(t.han, 0)}>
+              <span className="hf-tier-name">{t.label} {t.name}</span>
+              <span className="hf-tier-score">{hanFuScore(t.han, 0, isDealer, type, mode, kiriage)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -416,6 +554,7 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
 }) {
   const set = (patch: Partial<SheetState>) => setSheet({ ...sheet, ...patch });
   const ctx: RoundContext = { mode, dealer, honba, riichiSticks: pot, honbaStick: honbaStick(mode) };
+  const [editSeat, setEditSeat] = useState<number | null>(null);
 
   const toggleRonWinner = (seat: number) => {
     const exists = sheet.ronWinners.some((w) => w.seat === seat);
@@ -423,6 +562,13 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
   };
   const setRonWinner = (seat: number, hf: { han: number; fu: number }) =>
     set({ ronWinners: sheet.ronWinners.map((w) => (w.seat === seat ? { ...w, ...hf } : w)) });
+
+  const applyHanFu = (han: number, fu: number) => {
+    if (editSeat == null) return;
+    if (sheet.type === '自摸') set({ han, fu });
+    else setRonWinner(editSeat, { han, fu });
+    setEditSeat(null);
+  };
 
   // 结算明细：结算项 + 立直者说明性回顾
   let items: SettleItem[] = [];
@@ -451,63 +597,41 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
   );
 
   return (
-    <div className="sheet-mask" onClick={() => setSheet(null)}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+    <>
+      <div className="sheet-mask" onClick={() => setSheet(null)}>
+        <div className={`sheet ${sheet.angle === 90 || sheet.angle === -90 ? 'rot90' : ''}`} style={{ transform: `rotate(${sheet.angle}deg)` }} onClick={(e) => e.stopPropagation()}>
         <div className="sh-head">
           <span className="sh-title">{sheet.type}</span>
           <button className="sh-close" onClick={() => setSheet(null)}>✕</button>
         </div>
 
         {sheet.type === '自摸' && (
-          <div className="hanfu">
-            <div className="sec-label">番数</div>
-            <select value={sheet.han} onChange={(e) => { const han = Number(e.target.value); set({ han, fu: needFu(han) ? sheet.fu : 30 }); }}>
-              {HAN_NUMS.map((h) => <option key={h} value={h}>{h}番</option>)}
-            </select>
-            {needFu(sheet.han) && (
-              <>
-                <div className="sec-label">符数</div>
-                <select value={sheet.fu} onChange={(e) => set({ fu: Number(e.target.value) })}>
-                  {FU_OPTS.map((f) => <option key={f} value={f}>{f}符</option>)}
-                </select>
-              </>
-            )}
-          </div>
+          <>
+            <div className="sec-label">和牌者</div>
+            <div className="chips">{names.map((nm, i) => chip(nm, sheet.winner === i, () => set({ winner: sheet.winner === i ? null : i }), 'w' + i))}</div>
+            <div className="hanfu">
+              <div className="sec-label">番符</div>
+              <button className="hanfu-field" disabled={sheet.winner == null} onClick={() => sheet.winner != null && setEditSeat(sheet.winner)}>{hanFuLabel(sheet.han, sheet.fu, kiriage)}</button>
+            </div>
+          </>
         )}
 
         {sheet.type === '荣和' && (
           <>
             <div className="sec-label">放铳者（先选）</div>
-            <div className="chips">{names.map((nm, i) => chip(nm, sheet.discarder === i, () => set({ discarder: sheet.discarder === i ? null : i, ronWinners: sheet.ronWinners.filter((w) => w.seat !== i) }), 'd' + i))}</div>
+            <div className="chips">{names.map((nm, i) => !sheet.ronWinners.some((w) => w.seat === i) && chip(nm, sheet.discarder === i, () => set({ discarder: sheet.discarder === i ? null : i, ronWinners: sheet.ronWinners.filter((w) => w.seat !== i) }), 'd' + i))}</div>
             {sheet.discarder != null && (
               <>
                 <div className="sec-label">和牌者（点选，可多家）</div>
                 <div className="chips">{names.map((nm, i) => i !== sheet.discarder && chip(nm, sheet.ronWinners.some((w) => w.seat === i), () => toggleRonWinner(i), 'w' + i))}</div>
                 {[...sheet.ronWinners].sort((a, b) => a.seat - b.seat).map((w) => (
                   <div key={w.seat} className="hanfu">
-                    <div className="sec-label">{names[w.seat]} · 番数</div>
-                    <select value={w.han} onChange={(e) => { const han = Number(e.target.value); setRonWinner(w.seat, { han, fu: needFu(han) ? w.fu : 30 }); }}>
-                      {HAN_NUMS.map((h) => <option key={h} value={h}>{h}番</option>)}
-                    </select>
-                    {needFu(w.han) && (
-                      <>
-                        <div className="sec-label">符数</div>
-                        <select value={w.fu} onChange={(e) => setRonWinner(w.seat, { han: w.han, fu: Number(e.target.value) })}>
-                          {FU_OPTS.map((f) => <option key={f} value={f}>{f}符</option>)}
-                        </select>
-                      </>
-                    )}
+                    <div className="sec-label">{names[w.seat]} · 番符</div>
+                    <button className="hanfu-field" onClick={() => setEditSeat(w.seat)}>{hanFuLabel(w.han, w.fu, kiriage)}</button>
                   </div>
                 ))}
               </>
             )}
-          </>
-        )}
-
-        {sheet.type === '自摸' && (
-          <>
-            <div className="sec-label">和牌者</div>
-            <div className="chips">{names.map((nm, i) => chip(nm, sheet.winner === i, () => set({ winner: sheet.winner === i ? null : i }), 'w' + i))}</div>
           </>
         )}
 
@@ -563,8 +687,20 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
           <button className="btn-cancel" onClick={() => setSheet(null)}>取消</button>
           <button className="btn-ok" onClick={onConfirm}>确认</button>
         </div>
+        </div>
       </div>
-    </div>
+      {editSeat != null && (
+        <HanFuTable
+          type={sheet.type === '荣和' ? '荣和' : '自摸'}
+          isDealer={editSeat === dealer}
+          mode={mode}
+          kiriage={kiriage}
+          angle={sheet.angle}
+          onSelect={applyHanFu}
+          onClose={() => setEditSeat(null)}
+        />
+      )}
+    </>
   );
 }
 

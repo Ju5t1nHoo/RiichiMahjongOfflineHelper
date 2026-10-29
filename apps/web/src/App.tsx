@@ -19,32 +19,54 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [ready, setReady] = useState(false);
   const [resume, setResume] = useState<any | null>(null);
+  const [scoreInGame, setScoreInGame] = useState(false); // 计分风盘是否牌局进行中
+  const [navRevealed, setNavRevealed] = useState(false); // 进行中是否已用「返回」唤出标签栏
 
   useEffect(() => {
     auth.me().then(setUser).catch(() => setUser(null)).finally(() => setReady(true));
   }, []);
+
+  const goTab = (t: Tab) => {
+    setTab(t);
+    if (t !== 'score') setScoreInGame(false);
+    setNavRevealed(false);
+  };
 
   const current = TABS.find((t) => t.key === tab)!;
   if (ready && current.needsAuth && !user) {
     return <Auth onAuthed={setUser} />;
   }
 
+  const immersive = tab === 'score' && scoreInGame && !navRevealed;
+  const showTabbar = !immersive;
+
   return (
-    <div className="app">
-      <main className="content">
-        {tab === 'score' && <Score user={user} resume={resume} onResumeDone={() => setResume(null)} />}
-        {tab === 'quick' && <QuickScore user={user!} />}
-        {tab === 'stats' && <Stats onResume={(g) => { setResume(g); setTab('score'); }} />}
-        {tab === 'profile' && <Profile user={user!} onLogout={() => setUser(null)} />}
-      </main>
-      <nav className="tabbar">
-        {TABS.map((t) => (
-          <button key={t.key} className={`tab ${tab === t.key ? 'on' : ''}`} onClick={() => setTab(t.key)}>
-            <span className="t-ico">{t.icon}</span>
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </nav>
+    <div className={`app ${immersive ? 'immersive' : ''}`}>
+      {tab === 'score' ? (
+        <Score
+          user={user}
+          resume={resume}
+          onResumeDone={() => setResume(null)}
+          onShowNav={() => setNavRevealed(true)}
+          onGameStateChange={setScoreInGame}
+        />
+      ) : (
+        <main className="content">
+          {tab === 'quick' && <QuickScore user={user!} />}
+          {tab === 'stats' && <Stats onResume={(g) => { setResume(g); goTab('score'); }} />}
+          {tab === 'profile' && <Profile user={user!} onLogout={() => setUser(null)} />}
+        </main>
+      )}
+      {showTabbar && (
+        <nav className="tabbar">
+          {TABS.map((t) => (
+            <button key={t.key} className={`tab ${tab === t.key ? 'on' : ''}`} onClick={() => goTab(t.key)}>
+              <span className="t-ico">{t.icon}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
