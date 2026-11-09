@@ -26,6 +26,10 @@ export default function App() {
     auth.me().then(setUser).catch(() => setUser(null)).finally(() => setReady(true));
   }, []);
 
+  useEffect(() => {
+    document.body.dataset.view = tab === 'score' ? 'score' : '';
+  }, [tab]);
+
   const goTab = (t: Tab) => {
     setTab(t);
     if (t !== 'score') setScoreInGame(false);

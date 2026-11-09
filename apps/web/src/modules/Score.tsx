@@ -382,11 +382,11 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
               <div key={pos} className={`band band-${pos}`}>
                 <div className={`bar ${isDealer ? 'dealer' : ''} ${riichi.has(i) ? 'riichi' : ''}`} style={{ transform: `rotate(${angle}deg)` }}>
                   <div className="bar-head">
-                    <span className="badge wind">{windOf}</span>
                     <div className="name-row">
                       <span className="avatar">{seats[i].name[0]}</span>
                       <span className="name">{seats[i].name}</span>
                     </div>
+                    <span className="badge wind">{windOf}</span>
                   </div>
                   <div className="bar-score" onClick={() => toggleRiichi(i)}>
                     <div className="points-wrap">
