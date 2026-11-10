@@ -172,4 +172,9 @@ describe('罚符 settleChombo', () => {
     const d = settleChombo(ctx4(), 1, 8000).deltas;
     expect(d).toEqual([2800, -8000, 2600, 2600]);
   });
+
+  it('本手立直棒归还立直者（各 +1000）', () => {
+    const d = settleChombo(ctx4(), 1, 8000, [2]).deltas;
+    expect(d).toEqual([2800, -8000, 3600, 2600]);
+  });
 });

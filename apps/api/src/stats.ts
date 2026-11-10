@@ -65,6 +65,7 @@ async function handStats(playerId: string, mode: number) {
   for (const s of settlements) {
     const seat = seatByGame.get(s.gameId);
     if (seat == null) continue;
+    if (s.type === 'CHOMBO') continue; // 罚符 = 本局重打，作废手不计入手数
     hands++;
     const d = s.detail as any;
     const inRiichi = Array.isArray(d?.riichi) && d.riichi.includes(seat);

@@ -297,7 +297,7 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
         outcome = { kind: 'draw', dealerTenpai: sheet.sub === '途中流局' ? true : sheet.dealerTenpai };
       }
     } else {
-      deltas = settleChombo(ctx, sheet.chombo ?? 0, sheet.amount).deltas;
+      deltas = settleChombo(ctx, sheet.chombo ?? 0, sheet.amount, [...riichi]).deltas;
       outcome = { kind: 'chombo' };
     }
 
@@ -305,6 +305,8 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
     const newPoints = seats.map((s, i) => s.points + (deltas[i] ?? 0));
     const next = advance({ mode, dealer, honba, wind, hand }, outcome);
     setDealer(next.dealer); setHonba(next.honba); setWind(next.wind); setHand(next.hand);
+    // 罚符 = 本局重打：供托只退回本手立直棒，前几手流局留下的旧棒继续留存。
+    const nextPot = winnerIdx != null ? 0 : sheet.type === '罚符' ? pot - riichi.size : pot;
 
     // 记录每局数据变化
     let label: string = sheet.type;
@@ -314,13 +316,14 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
     setHandLog((log) => [...log, { seq, label, deltas }]);
 
     if (shouldEnd(next, toRuleSnapshot(rule), newPoints, outcome)) {
-      const leftoverPot = winnerIdx != null ? 0 : pot;
+      const leftoverPot = nextPot;
       const topIdx = newPoints.indexOf(Math.max(...newPoints));
       const adjusted = newPoints.map((p, i) => (i === topIdx ? p + leftoverPot * 1000 : p));
       setEndInfo({ raw: adjusted, results: finalScores(adjusted, toRuleSnapshot(rule), initialDealer) });
       setGameOver(true);
     }
-    if (winnerIdx != null) { setRiichi(new Set()); setPot(0); } else { setRiichi(new Set()); }
+    setRiichi(new Set());
+    setPot(nextPot);
 
     if (game) {
       const body: any = {
@@ -334,7 +337,7 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
         if (sheet.sub === '不听罚符') body.tenpai = sheet.tenpai;
         if (sheet.sub === '流局满贯') body.winner = sheet.winner;
       } else Object.assign(body, { chombo: sheet.chombo, amount: sheet.amount });
-      body.liveState = { dealer: next.dealer, honba: next.honba, wind: next.wind, hand: next.hand, points: newPoints, pot: winnerIdx != null ? 0 : pot, seq: seq + 1 };
+      body.liveState = { dealer: next.dealer, honba: next.honba, wind: next.wind, hand: next.hand, points: newPoints, pot: nextPot, seq: seq + 1 };
       try { await games.addSettlement(game.id, body); setSeq((s) => s + 1); } catch (e) { setSaveMsg((e as Error).message); }
     }
 
@@ -353,16 +356,6 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
 
   return (
     <div className="score">
-      {started && (
-        <header className="score-top">
-          <button className="back" onClick={onShowNav} aria-label="返回">←</button>
-          <div className="top-mode">{MODE_LABEL[mode]} · {rule.length}</div>
-          <div className="top-right">
-            <button className="end-btn" onClick={requestEnd}>终局</button>
-          </div>
-        </header>
-      )}
-
       {!started ? (
         <div className="start-screen">
           <div className="start-title">立直麻将计分</div>
@@ -401,7 +394,6 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
                   <div className="bar-actions">
                     <button className="act" onClick={() => openSheet('荣和', i)}>荣和</button>
                     <button className="act" onClick={() => openSheet('自摸', i)}>自摸</button>
-                    <button className="act" onClick={() => openSheet('罚符', i)}>罚符</button>
                   </div>
                 </div>
               </div>
@@ -409,8 +401,15 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
           })}
 
           <div className="center-block">
+            <div className="c-top">
+              <button className="pub-btn back" onClick={onShowNav}>← 返回</button>
+              <button className="pub-btn end" onClick={requestEnd}>终局</button>
+              <button className="pub-btn chombo" onClick={() => openSheet('罚符')}>罚符</button>
+            </div>
+            <div className="c-mode">{MODE_LABEL[mode]} · {rule.length}</div>
             <div className="round">{WIND[mode][wind % WIND[mode].length]}{hand}局</div>
-            <div className="sub">{honba}本场·供托{pot}</div>
+            <div className="c-line">{honba} 本场</div>
+            <div className="c-line">立直棒 {pot}</div>
             <div className="dice-row" onClick={rollDice}>
               <Die value={dice.a} rolling={rolling} />
               <Die value={dice.b} rolling={rolling} />
@@ -587,7 +586,7 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
     } else hint = '途中流局：不结算，本场 +1、连庄';
   } else {
     if (sheet.chombo == null) hint = '选择被罚雀士';
-    else items = settleChombo(ctx, sheet.chombo, sheet.amount).items;
+    else items = settleChombo(ctx, sheet.chombo, sheet.amount, [...riichi]).items;
   }
   const recap = [...items];
   for (const seat of riichi) recap.push({ seat, label: '立直', amount: -1000 });

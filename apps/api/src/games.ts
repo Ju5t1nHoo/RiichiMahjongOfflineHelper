@@ -201,7 +201,7 @@ games.post('/:id/settlements', async (c) => {
     else if (body.subType === 'NAGASHI_MANGAN') deltas = settleTsumo(ctx, body.winner, 5, 0).deltas; // 满贯自摸
     // ABORTIVE（途中流局）：不结算，deltas 全 0
   } else if (body.type === 'CHOMBO') {
-    deltas = settleChombo(ctx, body.chombo, body.amount).deltas;
+    deltas = settleChombo(ctx, body.chombo, body.amount, body.riichi ?? []).deltas;
   }
 
   const seq = body.seq ?? (await prisma.settlement.count({ where: { gameId: id } })) + 1;

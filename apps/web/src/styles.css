@@ -62,12 +62,6 @@ body {
 .sheet .table { width: 100%; aspect-ratio: 1 / 1; }
 
 /* 计分风盘：绿呢平铺 + 环绕条带 */
-.score-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; background: var(--felt); color: #fff; flex-shrink: 0; }
-.score-top .back { border: none; background: none; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; padding: 0 2px; }
-.score-top .top-mode { font-size: 14px; font-weight: 600; }
-.score-top .top-right { min-width: 20px; display: flex; justify-content: flex-end; }
-.score-top .end-btn { padding: 6px 14px; font-size: 13px; font-weight: 700; color: #fff; background: var(--accent); border: none; border-radius: 999px; cursor: pointer; }
-
 .felt { flex: 1; min-height: 0; display: grid; grid-template-areas: 'top top top' 'left center right' 'bottom bottom bottom'; grid-template-columns: 1fr auto 1fr; grid-template-rows: auto 1fr auto; gap: 8px; padding: 8px; background: var(--felt); }
 .band { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; }
 .band-top { grid-area: top; }
@@ -90,13 +84,19 @@ body {
 .bar-head .name { font-size: clamp(15px, 3.7vmin, 21px); }
 .bar-score { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .bar-score .points-wrap { width: 100%; }
-.bar-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; flex-shrink: 0; }
+.bar-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; flex-shrink: 0; }
 .bar-actions .act { padding: clamp(6px, 1.6vmin, 11px) clamp(8px, 2vmin, 16px); font-size: clamp(16px, 3.9vmin, 23px); font-weight: 700; color: #fff; background: var(--accent); border: none; border-radius: 10px; cursor: pointer; white-space: nowrap; }
 
-.center-block { grid-area: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, 1vmin, 8px); background: var(--felt); color: #fff; border-radius: 12px; min-width: clamp(88px, 24vmin, 170px); padding: clamp(8px, 2vmin, 16px); }
+.center-block { grid-area: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(4px, 1vmin, 8px); background: var(--felt); color: #fff; border-radius: 12px; min-width: clamp(130px, 30vmin, 200px); padding: clamp(8px, 2vmin, 16px); }
 .center-block .round { font-size: clamp(25px, 6.9vmin, 46px); font-weight: 800; }
-.center-block .sub { font-size: clamp(15px, 3.5vmin, 23px); opacity: .85; }
-.draw-btn { margin-top: 8px; padding: clamp(8px, 2vmin, 14px) clamp(14px, 3.6vmin, 26px); font-size: clamp(16px, 3.9vmin, 25px); font-weight: 700; color: var(--felt); background: #fff; border: none; border-radius: 999px; cursor: pointer; }
+.center-block .c-mode { font-size: clamp(11px, 2.4vmin, 14px); opacity: .8; font-weight: 600; letter-spacing: .5px; }
+.center-block .c-line { font-size: clamp(14px, 3.2vmin, 20px); opacity: .9; }
+.center-block .c-top { display: flex; gap: 6px; width: 100%; }
+.center-block .pub-btn { flex: 1; padding: clamp(6px, 1.6vmin, 10px) 4px; font-size: clamp(12px, 2.8vmin, 15px); font-weight: 700; border: none; border-radius: 999px; cursor: pointer; color: #fff; white-space: nowrap; }
+.pub-btn.back { background: rgba(255,255,255,.16); }
+.pub-btn.end { background: var(--accent); }
+.pub-btn.chombo { background: var(--gold); }
+.draw-btn { margin-top: clamp(8px, 2vmin, 14px); padding: clamp(8px, 2vmin, 14px) clamp(14px, 3.6vmin, 26px); font-size: clamp(16px, 3.9vmin, 25px); font-weight: 700; color: var(--felt); background: #fff; border: none; border-radius: 999px; cursor: pointer; }
 
 .end-confirm { max-width: 320px; }
 .end-confirm-text { text-align: center; font-size: 15px; padding: 10px 0 4px; }
@@ -127,7 +127,7 @@ body {
 .center .sub { font-size: 12px; opacity: .85; }
 .dealer-toggle { padding: 2px 8px; font-size: 11px; border: 1px solid var(--line); border-radius: 10px; background: #f0eadd; color: var(--muted); cursor: pointer; }
 .dealer-toggle.on { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
-.dice-row { display: flex; gap: 8px; margin-top: 4px; cursor: pointer; }
+.dice-row { display: flex; gap: 8px; margin: clamp(6px, 1.6vmin, 12px) 0; cursor: pointer; }
 .die { position: relative; width: clamp(32px, 8vmin, 55px); height: clamp(32px, 8vmin, 55px); background: #fff; border: 1px solid var(--line); border-radius: 6px; display: inline-block; }
 .die .dot { position: absolute; width: clamp(7px, 2vmin, 14px); height: clamp(7px, 2vmin, 14px); border-radius: 50%; background: var(--ink); transform: translate(-50%, -50%); }
 .die.rolling { animation: diceShake 0.12s ease-in-out infinite; }

@@ -31,17 +31,20 @@ function rotate(state: RoundState): RoundState {
  * 局面自动推进（requirements §4.7 + §4.6 罚符）：
  * - 庄家荣和/自摸 → 本场 +1、庄家不变。
  * - 闲家荣和/自摸 → 换庄、本场清零、局数 +1（>4 则场风 +1）。
- * - 流局 → 本场 +1，庄家按亲家是否听牌判定连庄（不听则换庄）。
- * - 罚符 → 本场 +1、庄家连庄。
+ * - 流局 → 本场 +1，庄家按亲家是否听牌判定连庄（不听则换庄，但本场仍 +1）。
+ * - 罚符 → 本局重打：本场、庄家、局数、场风均不变。
  */
 export function advance(state: RoundState, outcome: Outcome): RoundState {
   switch (outcome.kind) {
     case 'win':
       return outcome.winnerIsDealer ? { ...state, honba: state.honba + 1 } : rotate(state);
     case 'draw':
-      return outcome.dealerTenpai ? { ...state, honba: state.honba + 1 } : rotate(state);
+      // 流局无论庄家是否听牌，本场都 +1；庄家不听时轮庄（局数/场风推进）。
+      return outcome.dealerTenpai
+        ? { ...state, honba: state.honba + 1 }
+        : { ...rotate(state), honba: state.honba + 1 };
     case 'chombo':
-      return { ...state, honba: state.honba + 1 };
+      return state;
   }
 }
 

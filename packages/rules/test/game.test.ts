@@ -22,12 +22,16 @@ describe('局面推进 advance', () => {
     expect(advance(state4(), { kind: 'draw', dealerTenpai: true })).toMatchObject({ dealer: 0, honba: 1, hand: 1 });
   });
 
-  it('流局且庄家不听 → 换庄、本场清零', () => {
-    expect(advance(state4(), { kind: 'draw', dealerTenpai: false })).toMatchObject({ dealer: 1, honba: 0, hand: 2 });
+  it('流局且庄家不听 → 换庄、本场 +1', () => {
+    expect(advance(state4(), { kind: 'draw', dealerTenpai: false })).toMatchObject({ dealer: 1, honba: 1, hand: 2 });
   });
 
-  it('罚符 → 本场 +1、连庄', () => {
-    expect(advance(state4(), { kind: 'chombo' })).toMatchObject({ dealer: 0, honba: 1, hand: 1 });
+  it('流局且庄家不听、局数到 4 → 场风 +1、局数回 1、本场 +1', () => {
+    expect(advance(state4({ hand: 4, wind: 0, honba: 1 }), { kind: 'draw', dealerTenpai: false })).toMatchObject({ wind: 1, hand: 1, honba: 2 });
+  });
+
+  it('罚符 → 本局重打，本场/庄家/局数/场风不变', () => {
+    expect(advance(state4({ honba: 2, hand: 3, wind: 1 }), { kind: 'chombo' })).toMatchObject({ dealer: 0, honba: 2, hand: 3, wind: 1 });
   });
 
   it('三人局轮庄取模 3', () => {

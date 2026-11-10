@@ -124,8 +124,11 @@ export function settleNoten(ctx: RoundContext, tenpai: boolean[], notenBappu = 3
   return resultOf(items, n);
 }
 
-/** 罚符：被罚者付 amount，均分给其他玩家，余数归庄家。 */
-export function settleChombo(ctx: RoundContext, chombo: number, amount: number): SettleResult {
+/**
+ * 罚符：被罚者付 amount，均分给其他玩家，余数归庄家。
+ * 本手立直棒归还立直者（riichiSeats 各 +1000）；本局重打，本场/庄家/局数不变。
+ */
+export function settleChombo(ctx: RoundContext, chombo: number, amount: number, riichiSeats: number[] = []): SettleResult {
   const n = ctx.mode;
   const items: SettleItem[] = [];
   const each = Math.floor(amount / (n - 1) / 100) * 100;
@@ -135,5 +138,6 @@ export function settleChombo(ctx: RoundContext, chombo: number, amount: number):
     if (o === chombo) continue;
     add(items, o, '罚符', each + (o === ctx.dealer ? rest : 0));
   }
+  for (const seat of riichiSeats) add(items, seat, '立直返还', 1000);
   return resultOf(items, n);
 }
