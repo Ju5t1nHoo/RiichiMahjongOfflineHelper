@@ -74,7 +74,7 @@ body {
 .bar.riichi { background: var(--riichi); }
 .bar.riichi .name, .bar.riichi .points, .bar.riichi .badge.wind { color: #fff; }
 .bar.riichi .diff { color: rgba(255, 255, 255, 0.85); }
-.band-top .bar, .band-bottom .bar { width: 100%; }
+.band-top .bar, .band-bottom .bar { width: 100%; min-height: clamp(110px, 28vmin, 172px); }
 .band-left, .band-right { container-type: size; }
 .band-left .bar, .band-right .bar { width: 100cqh; height: 100cqw; flex-shrink: 0; }
 
