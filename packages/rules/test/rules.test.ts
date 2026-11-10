@@ -177,4 +177,27 @@ describe('罚符 settleChombo', () => {
     const d = settleChombo(ctx4(), 1, 8000, [2]).deltas;
     expect(d).toEqual([2800, -8000, 3600, 2600]);
   });
+
+  it('庄家得半（四麻）：庄家拿一半，其余非庄家平分另一半', () => {
+    const d = settleChombo(ctx4(), 1, 8000, [], '庄家得半').deltas;
+    expect(d).toEqual([4000, -8000, 2000, 2000]);
+  });
+
+  it('庄家得半（三麻）：庄家拿一半，另一非庄家拿另一半', () => {
+    const d = settleChombo({ mode: 3, dealer: 0, honba: 0, riichiSticks: 0, honbaStick: 200 }, 1, 8000, [], '庄家得半').deltas;
+    expect(d).toEqual([4000, -8000, 4000]);
+  });
+
+  it('庄家得半：庄家是被罚者 → 退化为均分，且点数守恒', () => {
+    const d = settleChombo(ctx4(), 0, 8000, [], '庄家得半').deltas;
+    expect(d[0]).toBe(-8000);
+    expect(d.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(d.slice(1).reduce((a, b) => a + b, 0)).toBe(8000);
+  });
+
+  it('庄家是被罚者时均分，余数不丢失（守恒）', () => {
+    const d = settleChombo(ctx4(), 0, 8000).deltas;
+    expect(d.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(d[0]).toBe(-8000);
+  });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { games, stats } from '../api';
 import YakumanWall from './YakumanWall';
 
@@ -7,6 +7,23 @@ const fmtTime = (s: string) => {
   const pad = (x: number) => String(x).padStart(2, '0');
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
+
+const K_PRESETS = ['0.5', '1', '2', '5', '10'];
+
+/** 合算：跨局按玩家身份（注册按 playerId、临时按名称）对得点求和 */
+function aggregate(games: any[]): { name: string; total: number }[] {
+  const map = new Map<string, { name: string; total: number }>();
+  for (const g of games) {
+    for (const p of g.participants ?? []) {
+      const key = p.playerId ?? (p.tempName ? `temp:${p.tempName}` : '');
+      if (!key) continue;
+      const name = p.player?.name ?? p.tempName ?? '';
+      const prev = map.get(key);
+      map.set(key, { name: prev?.name ?? name, total: (prev?.total ?? 0) + Number(p.finalScore ?? 0) });
+    }
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total);
+}
 
 type Block = 'mine' | 'feed' | 'rank' | 'yakuman';
 const BLOCKS: { key: Block; label: string }[] = [
@@ -22,6 +39,8 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
   const [sort, setSort] = useState('total');
   const [data, setData] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [settleOpen, setSettleOpen] = useState(false);
   const [detail, setDetail] = useState<{ type: 'game'; data: any } | { type: 'player'; playerId: string; mode: number } | null>(null);
 
   useEffect(() => {
@@ -48,18 +67,24 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
   const openGame = async (id: string) => { setDetail({ type: 'game', data: await games.get(id) }); };
   const openPlayer = (id: string) => { setDetail({ type: 'player', playerId: id, mode }); };
 
+  const toggleSelect = (id: string) =>
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const changeMode = (m: number) => { setMode(m); setSelected(new Set()); setSettleOpen(false); };
+  const changeBlock = (b: Block) => { setBlock(b); setSelected(new Set()); setSettleOpen(false); };
+  const selectedGames = useMemo(() => data.filter((g) => selected.has(g.id)), [data, selected]);
+
   return (
     <div>
       <div className="stats-head">
         <div className="tabs2">
           {BLOCKS.map((b) => (
-            <button key={b.key} className={`tab2 ${block === b.key ? 'on' : ''}`} onClick={() => setBlock(b.key)}>{b.label}</button>
+            <button key={b.key} className={`tab2 ${block === b.key ? 'on' : ''}`} onClick={() => changeBlock(b.key)}>{b.label}</button>
           ))}
         </div>
         {block !== 'yakuman' && (
           <div className="segment">
             {[4, 3, 2].map((m) => (
-              <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => setMode(m)}>{m}人</button>
+              <button key={m} className={`seg ${mode === m ? 'on' : ''}`} onClick={() => changeMode(m)}>{m}人</button>
             ))}
           </div>
         )}
@@ -104,6 +129,9 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
           const host = block === 'feed' ? `创建用户：${item.creator?.username ?? '—'} · ` : '';
           return (
             <div key={i} className="row" onClick={() => finished ? openGame(item.id) : onResume?.(item)}>
+              {block === 'mine' && finished && (
+                <input type="checkbox" className="chk" checked={selected.has(item.id)} onClick={(e) => e.stopPropagation()} onChange={() => toggleSelect(item.id)} />
+              )}
               <div className="row-body">
                 <div className="row-name">{title}{isQuick && <span className="badge">录分</span>}</div>
                 <div className="row-sub">{host}{timeStr}</div>
@@ -124,6 +152,51 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
       </div>
         </>
       )}
+
+      {block === 'mine' && selected.size > 0 && (
+        <div className="settle-fab">
+          <button onClick={() => setSettleOpen(true)}>结算（{selected.size}）</button>
+        </div>
+      )}
+      {settleOpen && <SettleModal games={selectedGames} onClose={() => setSettleOpen(false)} />}
+    </div>
+  );
+}
+
+function SettleModal({ games, onClose }: { games: any[]; onClose: () => void }) {
+  const [k, setK] = useState('1');
+  const kNum = parseFloat(k) || 0;
+  const sums = useMemo(() => aggregate(games), [games]);
+  const fmt = (v: number) => (v > 0 ? '+' : '') + v.toFixed(1);
+  return (
+    <div className="sheet-mask" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sh-head">
+          <span className="sh-title">合算结算 · {games.length} 局</span>
+          <button className="sh-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="sec-label">K 值</div>
+        <div className="chips">
+          {K_PRESETS.map((p) => (
+            <button key={p} className={`chip ${k === p ? 'on' : ''}`} onClick={() => setK(p)}>{p}</button>
+          ))}
+        </div>
+        <div className="field" style={{ marginTop: 10 }}>
+          <input type="number" step="0.1" value={k} onChange={(e) => setK(e.target.value)} placeholder="自定义 K 值" />
+        </div>
+        <div className="sec-label">各家合计（得点 × K）</div>
+        <div className="list">
+          {sums.map((s, i) => (
+            <div key={i} className="row">
+              <span className="rank-num">{i + 1}</span>
+              <span className="avatar">{s.name?.[0]}</span>
+              <div className="row-body"><div className="row-name">{s.name}</div></div>
+              <div className="row-val">{fmt(s.total * kNum)}</div>
+            </div>
+          ))}
+          {sums.length === 0 && <div className="placeholder">所选对局无得点数据</div>}
+        </div>
+      </div>
     </div>
   );
 }

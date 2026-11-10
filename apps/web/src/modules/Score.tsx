@@ -100,6 +100,7 @@ interface SheetState {
   tenpai: boolean[];
   chombo: number | null;
   amount: number;
+  split: '均分' | '庄家得半';
   dealerTenpai: boolean;
 }
 
@@ -297,7 +298,7 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
         outcome = { kind: 'draw', dealerTenpai: sheet.sub === '途中流局' ? true : sheet.dealerTenpai };
       }
     } else {
-      deltas = settleChombo(ctx, sheet.chombo ?? 0, sheet.amount, [...riichi]).deltas;
+      deltas = settleChombo(ctx, sheet.chombo ?? 0, sheet.amount, [...riichi], sheet.split).deltas;
       outcome = { kind: 'chombo' };
     }
 
@@ -336,7 +337,7 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
         body.subType = sheet.sub === '不听罚符' ? 'NOTEN' : sheet.sub === '途中流局' ? 'ABORTIVE' : 'NAGASHI_MANGAN';
         if (sheet.sub === '不听罚符') body.tenpai = sheet.tenpai;
         if (sheet.sub === '流局满贯') body.winner = sheet.winner;
-      } else Object.assign(body, { chombo: sheet.chombo, amount: sheet.amount });
+      } else Object.assign(body, { chombo: sheet.chombo, amount: sheet.amount, split: sheet.split });
       body.liveState = { dealer: next.dealer, honba: next.honba, wind: next.wind, hand: next.hand, points: newPoints, pot: nextPot, seq: seq + 1 };
       try { await games.addSettlement(game.id, body); setSeq((s) => s + 1); } catch (e) { setSaveMsg((e as Error).message); }
     }
@@ -351,7 +352,7 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
       discarder: null,
       winner: type === '自摸' && seat != null ? seat : null,
       chombo: type === '罚符' && seat != null ? seat : null,
-      sub: '不听罚符', tenpai: seatsActive.map(() => false), amount: 8000, dealerTenpai: true,
+      sub: '不听罚符', tenpai: seatsActive.map(() => false), amount: 8000, split: '均分', dealerTenpai: true,
     });
 
   return (
@@ -402,7 +403,7 @@ export default function Score({ user, resume, onResumeDone, onShowNav, onGameSta
 
           <div className="center-block">
             <div className="c-top">
-              <button className="pub-btn back" onClick={onShowNav}>← 返回</button>
+              <button className="pub-btn back" onClick={onShowNav}>返回</button>
               <button className="pub-btn end" onClick={requestEnd}>终局</button>
               <button className="pub-btn chombo" onClick={() => openSheet('罚符')}>罚符</button>
             </div>
@@ -586,13 +587,13 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
     } else hint = '途中流局：不结算，本场 +1、连庄';
   } else {
     if (sheet.chombo == null) hint = '选择被罚雀士';
-    else items = settleChombo(ctx, sheet.chombo, sheet.amount, [...riichi]).items;
+    else items = settleChombo(ctx, sheet.chombo, sheet.amount, [...riichi], sheet.split).items;
   }
   const recap = [...items];
   for (const seat of riichi) recap.push({ seat, label: '立直', amount: -1000 });
 
-  const chip = (label: string, active: boolean, onClick: () => void, key?: string) => (
-    <button key={key ?? label} className={`chip ${active ? 'on' : ''}`} onClick={onClick}>{label}</button>
+  const chip = (label: string, active: boolean, onClick: () => void, key?: string, disabled?: boolean) => (
+    <button key={key ?? label} className={`chip ${active ? 'on' : ''}`} disabled={disabled} onClick={onClick}>{label}</button>
   );
 
   return (
@@ -666,9 +667,14 @@ function Sheet({ sheet, setSheet, n, dealer, honba, pot, mode, names, riichi, ki
         {sheet.type === '罚符' && (
           <>
             <div className="sec-label">被罚雀士</div>
-            <div className="chips">{names.map((nm, i) => chip(nm, sheet.chombo === i, () => set({ chombo: sheet.chombo === i ? null : i }), 'c' + i))}</div>
+            <div className="chips">{names.map((nm, i) => chip(nm, sheet.chombo === i, () => { const c = sheet.chombo === i ? null : i; set({ chombo: c, split: c === dealer ? '均分' : sheet.split }); }, 'c' + i))}</div>
             <div className="sec-label">罚点数</div>
             <div className="chips">{AMOUNTS.map((a) => chip(String(a), sheet.amount === a, () => set({ amount: a }), String(a)))}</div>
+            <div className="sec-label">分配方式</div>
+            <div className="chips">
+              {chip('各家均分', sheet.split === '均分', () => set({ split: '均分' }), 'sp0')}
+              {chip('庄家得半', sheet.split === '庄家得半', () => set({ split: '庄家得半' }), 'sp1', !(mode >= 3 && sheet.chombo !== dealer))}
+            </div>
           </>
         )}
 

@@ -124,20 +124,42 @@ export function settleNoten(ctx: RoundContext, tenpai: boolean[], notenBappu = 3
   return resultOf(items, n);
 }
 
+/** 罚符分配方式：各家均分 / 庄家得半 */
+export type ChomboSplit = '均分' | '庄家得半';
+
 /**
- * 罚符：被罚者付 amount，均分给其他玩家，余数归庄家。
- * 本手立直棒归还立直者（riichiSeats 各 +1000）；本局重打，本场/庄家/局数不变。
+ * 罚符：被罚者付 amount，按 split 分配罚点；本手立直棒归还立直者（riichiSeats 各 +1000）。
+ * 本局重打，本场/庄家/局数不变。
+ * - 各家均分：均分给其余 n−1 家，余数归庄家（庄家是被罚者时，余数按座位序以 100 点块分给各家，保证守恒）。
+ * - 庄家得半：庄家拿一半，其余非庄家（且非被罚者）平分另一半；仅庄家非被罚者且 n≥3 时有效，否则退化为均分。
  */
-export function settleChombo(ctx: RoundContext, chombo: number, amount: number, riichiSeats: number[] = []): SettleResult {
+export function settleChombo(ctx: RoundContext, chombo: number, amount: number, riichiSeats: number[] = [], split: ChomboSplit = '均分'): SettleResult {
   const n = ctx.mode;
   const items: SettleItem[] = [];
-  const each = Math.floor(amount / (n - 1) / 100) * 100;
-  const rest = amount - each * (n - 1);
   add(items, chombo, '罚符', -amount);
-  for (let o = 0; o < n; o++) {
-    if (o === chombo) continue;
-    add(items, o, '罚符', each + (o === ctx.dealer ? rest : 0));
+
+  if (split === '庄家得半' && chombo !== ctx.dealer && n >= 3) {
+    const half = amount / 2;
+    add(items, ctx.dealer, '罚符', half);
+    const others: number[] = [];
+    for (let o = 0; o < n; o++) if (o !== chombo && o !== ctx.dealer) others.push(o);
+    if (others.length > 0) {
+      const each = Math.floor(half / others.length / 100) * 100;
+      const rest = half - each * others.length;
+      others.forEach((o, k) => add(items, o, '罚符', each + (k === 0 ? rest : 0)));
+    }
+  } else {
+    const each = Math.floor(amount / (n - 1) / 100) * 100;
+    let rest = amount - each * (n - 1);
+    for (let o = 0; o < n; o++) {
+      if (o === chombo) continue;
+      let extra = 0;
+      if (ctx.dealer !== chombo && o === ctx.dealer) extra = rest; // 余数归庄家
+      else if (ctx.dealer === chombo && rest >= 100) { extra = 100; rest -= 100; } // 庄家被罚：余数按序分 100 块
+      add(items, o, '罚符', each + extra);
+    }
   }
+
   for (const seat of riichiSeats) add(items, seat, '立直返还', 1000);
   return resultOf(items, n);
 }
