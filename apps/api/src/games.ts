@@ -124,6 +124,7 @@ games.get('/feed', async (c) => {
 
 // 牌局详情（含逐局结算）
 games.get('/:id', async (c) => {
+  const user = c.get('user');
   const id = c.req.param('id');
   const game = await prisma.game.findUnique({
     where: { id },
@@ -134,6 +135,10 @@ games.get('/:id', async (c) => {
     },
   });
   if (!game) return c.json({ error: '牌局不存在' }, 404);
+  // 已终局牌局公开；进行中牌局仅创建者可查看
+  if (game.status !== 'FINISHED' && game.creatorUserId !== user.id) {
+    return c.json({ error: '无权限' }, 403);
+  }
   return c.json(game);
 });
 

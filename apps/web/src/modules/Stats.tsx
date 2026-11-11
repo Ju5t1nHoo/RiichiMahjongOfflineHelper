@@ -62,16 +62,23 @@ export default function Stats({ onResume }: { onResume?: (game: any) => void }) 
     return () => { cancel = true; };
   }, [block, mode, sort]);
 
+  const selectedGames = useMemo(() => data.filter((g) => selected.has(g.id)), [data, selected]);
+
   if (detail) return <Detail detail={detail} back={() => setDetail(null)} />;
 
-  const openGame = async (id: string) => { setDetail({ type: 'game', data: await games.get(id) }); };
+  const openGame = async (id: string) => {
+    try {
+      setDetail({ type: 'game', data: await games.get(id) });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const openPlayer = (id: string) => { setDetail({ type: 'player', playerId: id, mode }); };
 
   const toggleSelect = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const changeMode = (m: number) => { setMode(m); setSelected(new Set()); setSettleOpen(false); };
   const changeBlock = (b: Block) => { setBlock(b); setSelected(new Set()); setSettleOpen(false); };
-  const selectedGames = useMemo(() => data.filter((g) => selected.has(g.id)), [data, selected]);
 
   return (
     <div>
